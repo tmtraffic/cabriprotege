@@ -6,20 +6,36 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useToast } from '@/components/ui/use-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useSupabaseAuth();
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    // TODO: Implement actual authentication logic
-    if (email && password) {
-      // Placeholder logic - replace with actual authentication
+    try {
+      if (!email || !password) {
+        throw new Error('Por favor, preencha todos os campos');
+      }
+
+      const { user } = await signIn(email, password);
+
+      toast({
+        title: "Login realizado com sucesso",
+        description: `Bem-vindo, ${user?.email}!`,
+      });
+
+      // Redirecionamento baseado no email
       if (email.includes('admin')) {
         navigate('/admin');
       } else if (email.includes('employee')) {
@@ -27,8 +43,15 @@ const Login = () => {
       } else {
         navigate('/dashboard');
       }
-    } else {
-      setError('Por favor, preencha todos os campos');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+      toast({
+        variant: "destructive",
+        title: "Erro no login",
+        description: err instanceof Error ? err.message : 'Erro ao fazer login',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,6 +78,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           
@@ -67,11 +91,12 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           
-          <Button type="submit" className="w-full">
-            Entrar
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
 
           <div className="text-center mt-4">
@@ -87,6 +112,7 @@ const Login = () => {
             variant="link" 
             className="ml-2 text-cabricop-blue"
             onClick={() => navigate('/clients/new')}
+            disabled={isLoading}
           >
             Cadastre-se aqui
           </Button>

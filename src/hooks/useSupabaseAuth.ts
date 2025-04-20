@@ -1,12 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Busca das variáveis de ambiente fornecidas pela integração do Lovable com o Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fcfc6e33-40a6-4f1d-899f-f33071f9a22c4.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Usando valores de fallback para desenvolvimento se as variáveis de ambiente não estiverem disponíveis
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://sua-url-do-supabase.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sua-chave-anon-do-supabase';
 
-if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Chave anônima do Supabase não encontrada. Verifique se você configurou corretamente a integração com o Lovable.');
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Variáveis de ambiente do Supabase não encontradas. Usando valores de fallback para desenvolvimento.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);

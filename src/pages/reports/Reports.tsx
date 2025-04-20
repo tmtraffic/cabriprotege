@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Card, 
@@ -163,7 +164,7 @@ const Reports = () => {
               <CardContent className="h-80 flex items-center justify-center">
                 <div className="text-center">
                   <BarChart2 className="mx-auto h-40 w-40 text-muted-foreground" />
-                  <p className="mt-4 text-sm text-muted-foreground">Gráfico de tend��ncia de processos</p>
+                  <p className="mt-4 text-sm text-muted-foreground">Gráfico de tendência de processos</p>
                 </div>
               </CardContent>
             </Card>
@@ -285,7 +286,7 @@ const Reports = () => {
                       <div className="text-sm font-medium text-muted-foreground">Indeferidos</div>
                       <div className="text-xl font-bold">12</div>
                       <div className="text-xs text-muted-foreground">6% do total</div>
-                    </Card>
+                    </CardContent>
                   </Card>
                 </div>
                 
@@ -480,7 +481,7 @@ const Reports = () => {
                         </div>
                         <User className="h-8 w-8 text-muted-foreground" />
                       </div>
-                    </Card>
+                    </CardContent>
                   </Card>
                 </div>
                 

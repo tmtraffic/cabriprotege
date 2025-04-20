@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -21,6 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { 
   Link2, 
   AlertTriangle, 
@@ -213,7 +221,7 @@ const WebhookConfig = () => {
         return {
           ...w,
           lastTriggered: now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR'),
-          lastStatus: success ? "success" : "error"
+          lastStatus: success ? "success" as const : "error" as const
         };
       }
       return w;
@@ -279,7 +287,7 @@ const WebhookConfig = () => {
         return {
           ...webhook,
           lastTriggered: timestamp,
-          lastStatus: "success" // Simular sucesso para todos neste exemplo
+          lastStatus: "success" as const // Simular sucesso para todos neste exemplo
         };
       }
       return webhook;
@@ -655,7 +663,6 @@ const WebhookConfig = () => {
         )}
       </CardFooter>
 
-      {/* Modal para adicionar webhook */}
       <Dialog open={isAddingWebhook} onOpenChange={setIsAddingWebhook}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -732,7 +739,6 @@ const WebhookConfig = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal para editar webhook */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -164,7 +163,7 @@ const Reports = () => {
               <CardContent className="h-80 flex items-center justify-center">
                 <div className="text-center">
                   <BarChart2 className="mx-auto h-40 w-40 text-muted-foreground" />
-                  <p className="mt-4 text-sm text-muted-foreground">Gráfico de tendência de processos</p>
+                  <p className="mt-4 text-sm text-muted-foreground">Gráfico de tend��ncia de processos</p>
                 </div>
               </CardContent>
             </Card>
@@ -243,11 +242,13 @@ const Reports = () => {
                   <CardDescription>Análise detalhada de processos</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    placeholder="Buscar processo..." 
-                    className="w-full md:w-[250px]"
-                    startIcon={<Search className="h-4 w-4" />}
-                  />
+                  <div className="relative w-full md:w-[250px]">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar processo..." 
+                      className="w-full pl-9"
+                    />
+                  </div>
                   <Button variant="outline" size="sm">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtrar
@@ -284,7 +285,7 @@ const Reports = () => {
                       <div className="text-sm font-medium text-muted-foreground">Indeferidos</div>
                       <div className="text-xl font-bold">12</div>
                       <div className="text-xs text-muted-foreground">6% do total</div>
-                    </CardContent>
+                    </Card>
                   </Card>
                 </div>
                 
@@ -431,11 +432,13 @@ const Reports = () => {
                   <CardDescription>Dados e estatísticas de clientes</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    placeholder="Buscar cliente..." 
-                    className="w-full md:w-[250px]"
-                    startIcon={<Search className="h-4 w-4" />}
-                  />
+                  <div className="relative w-full md:w-[250px]">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar cliente..." 
+                      className="w-full pl-9"
+                    />
+                  </div>
                   <Button variant="outline" size="sm">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtrar
@@ -477,7 +480,7 @@ const Reports = () => {
                         </div>
                         <User className="h-8 w-8 text-muted-foreground" />
                       </div>
-                    </CardContent>
+                    </Card>
                   </Card>
                 </div>
                 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -29,6 +28,7 @@ import {
   Webhook,
   Server
 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("account");

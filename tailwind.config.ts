@@ -19,6 +19,10 @@ export default {
 		},
 		extend: {
 			colors: {
+				cabricop: {
+					blue: '#1B67B2',
+					orange: '#C77F1A',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

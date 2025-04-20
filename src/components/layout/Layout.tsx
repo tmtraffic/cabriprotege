@@ -1,0 +1,38 @@
+
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import Footer from "./Footer";
+
+interface LayoutProps {
+  userRole?: "client" | "employee" | "admin";
+  children?: React.ReactNode;
+}
+
+const Layout = ({ userRole = "client", children }: LayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header toggleSidebar={toggleSidebar} />
+      <div className="flex flex-1">
+        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
+        <main
+          className={`flex-1 transition-all duration-300 ease-in-out pt-6 px-4 md:px-6 md:ml-64`}
+        >
+          <div className="container mx-auto max-w-6xl">
+            {children || <Outlet />}
+          </div>
+        </main>
+      </div>
+      <Footer />
+    </div>
+  );
+};
+
+export default Layout;

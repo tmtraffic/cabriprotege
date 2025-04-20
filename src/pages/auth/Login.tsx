@@ -44,11 +44,21 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+      console.error('Erro de login:', err);
+      let errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login';
+      
+      // Mensagens de erro mais amigáveis
+      if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'Email ou senha incorretos';
+      } else if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Falha na conexão com o servidor. Verifique sua conexão com a internet e as configurações do Supabase.';
+      }
+      
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Erro no login",
-        description: err instanceof Error ? err.message : 'Erro ao fazer login',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

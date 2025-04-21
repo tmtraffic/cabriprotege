@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
@@ -39,7 +40,7 @@ const Layout = ({ userRole = "admin", children }: LayoutProps) => {
     <div className="flex min-h-screen flex-col">
       <Header toggleSidebar={toggleSidebar} />
       <div className="flex flex-1">
-        <Sidebar isOpen={sidebarOpen} userRole={userRole} />
+        <Sidebar isOpen={sidebarOpen} userRole="admin" />
         <main
           className={`flex-1 transition-all duration-300 ease-in-out pt-6 px-4 md:px-6 ${
             sidebarOpen && !isMobile ? "md:ml-64" : "md:ml-0"

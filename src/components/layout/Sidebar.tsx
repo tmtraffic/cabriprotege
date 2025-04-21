@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,10 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
   const location = useLocation();
+  const currentUser = {
+    name: "Administrador",
+    role: userRole
+  };
 
   // Common menu items for all users
   const commonMenuItems = [
@@ -153,7 +158,7 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
               <div className="text-sidebar-foreground">
                 <p className="font-medium text-sm">Bem-vindo(a),</p>
                 <p className="font-bold">
-                  Administrador
+                  {currentUser.name}
                 </p>
               </div>
             </div>

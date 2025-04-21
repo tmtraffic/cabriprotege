@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -49,17 +50,17 @@ const App = () => (
           
           <Route path="/auth/login" element={<Login />} />
           
-          <Route path="/dashboard" element={<Layout userRole="client"><ClientDashboard /></Layout>} />
+          <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
           
           <Route path="/clients" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <ClientProfile />
               </Suspense>
             </Layout>
           } />
           <Route path="/clients/new" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <ClientRegistration />
               </Suspense>
@@ -67,14 +68,7 @@ const App = () => (
           } />
           
           <Route path="/vehicles" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <VehicleRegistration />
-              </Suspense>
-            </Layout>
-          } />
-          <Route path="/vehicles/new" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <VehicleRegistration />
               </Suspense>
@@ -82,44 +76,16 @@ const App = () => (
           } />
           
           <Route path="/veiculos" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <VehicleRegistration />
-              </Suspense>
-            </Layout>
-          } />
-          <Route path="/veiculos/novo" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <VehicleRegistration />
               </Suspense>
             </Layout>
           } />
           
+          {/* Página unificada de processos */}
           <Route path="/processos" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <ProcessManagement />
-              </Suspense>
-            </Layout>
-          } />
-          <Route path="/processos/novo" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <ProcessManagement />
-              </Suspense>
-            </Layout>
-          } />
-          
-          <Route path="/processes" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <ProcessManagement />
-              </Suspense>
-            </Layout>
-          } />
-          <Route path="/processes/new" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <ProcessManagement />
               </Suspense>
@@ -127,38 +93,24 @@ const App = () => (
           } />
           
           <Route path="/clientes" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <ClientProfile />
               </Suspense>
             </Layout>
           } />
-          <Route path="/clientes/novo" element={
-            <Layout userRole="employee">
-              <Suspense fallback={<PageLoader />}>
-                <ClientRegistration />
-              </Suspense>
-            </Layout>
-          } />
           
-          <Route path="/import" element={<Layout userRole="employee"><BulkImportForm /></Layout>} />
+          <Route path="/import" element={<Layout userRole="admin"><BulkImportForm /></Layout>} />
           
-          <Route path="/search" element={<Layout userRole="employee"><AdvancedSearch /></Layout>} />
+          <Route path="/search" element={<Layout userRole="admin"><AdvancedSearch /></Layout>} />
           
-          <Route path="/crm" element={<Layout userRole="employee"><LeadManagement /></Layout>} />
+          <Route path="/crm" element={<Layout userRole="admin"><LeadManagement /></Layout>} />
           
           <Route path="/admin/infraction-config" element={<Layout userRole="admin"><InfractionConfig /></Layout>} />
           
           <Route path="/admin/webhook-config" element={<Layout userRole="admin"><WebhookConfig /></Layout>} />
           
           <Route path="/relatorios" element={
-            <Layout userRole="admin">
-              <Suspense fallback={<PageLoader />}>
-                <Reports />
-              </Suspense>
-            </Layout>
-          } />
-          <Route path="/reports" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <Reports />
@@ -173,16 +125,9 @@ const App = () => (
               </Suspense>
             </Layout>
           } />
-          <Route path="/settings" element={
-            <Layout userRole="admin">
-              <Suspense fallback={<PageLoader />}>
-                <Settings />
-              </Suspense>
-            </Layout>
-          } />
           
           <Route path="/documentos" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <div className="p-6">
                 <h1 className="text-2xl font-bold mb-4">Documentos</h1>
                 <p className="text-muted-foreground">Gerencie os documentos relacionados aos processos e veículos.</p>
@@ -191,7 +136,7 @@ const App = () => (
           } />
           
           <Route path="/notificacoes" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <div className="p-6">
                 <h1 className="text-2xl font-bold mb-4">Notificações</h1>
                 <p className="text-muted-foreground">Veja as notificações e alertas do sistema.</p>
@@ -200,7 +145,7 @@ const App = () => (
           } />
           
           <Route path="/agenda" element={
-            <Layout userRole="employee">
+            <Layout userRole="admin">
               <div className="p-6">
                 <h1 className="text-2xl font-bold mb-4">Agenda</h1>
                 <p className="text-muted-foreground">Gerencie compromissos e prazos importantes.</p>
@@ -219,7 +164,7 @@ const App = () => (
             </Layout>
           } />
           
-          <Route path="/employee" element={<Layout userRole="employee"><EmployeeDashboard /></Layout>} />
+          <Route path="/employee" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
           
           <Route path="/admin" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
           

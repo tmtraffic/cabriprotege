@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ import {
   Filter
 } from "lucide-react";
 
-// Mock data for demonstration
 const mockTables = [
   { name: "users", rows: 243, size: "1.2 MB", lastUpdated: "2025-04-19 14:30", backupStatus: "success" },
   { name: "clients", rows: 243, size: "2.4 MB", lastUpdated: "2025-04-19 12:15", backupStatus: "success" },
@@ -585,4 +583,3 @@ const DatabaseManagement = () => {
 };
 
 export default DatabaseManagement;
-

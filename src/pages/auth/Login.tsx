@@ -30,25 +30,40 @@ const Login = () => {
 
       const { user } = await signIn(email, password);
 
-      toast({
-        title: "Login realizado com sucesso",
-        description: `Bem-vindo, ${user?.email}!`,
-      });
+      if (user) {
+        toast({
+          title: "Login realizado com sucesso",
+          description: `Bem-vindo, ${user.email}!`,
+        });
 
-      // Redirecionamento baseado no email
-      if (email.includes('admin')) {
-        navigate('/admin');
-      } else if (email.includes('employee')) {
-        navigate('/employee');
+        // Redirecionamento baseado no email
+        if (email.includes('admin')) {
+          navigate('/admin');
+        } else if (email.includes('employee')) {
+          navigate('/employee');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        throw new Error('Não foi possível completar o login');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login';
+      console.error('Erro de login:', errorMessage);
+      
+      // Mensagens mais específicas para erros comuns
+      let userFriendlyMessage = errorMessage;
+      
+      // Verificar se o erro está relacionado às variáveis de ambiente
+      if (errorMessage.includes('supabaseUrl') || errorMessage.includes('supabaseKey')) {
+        userFriendlyMessage = 'Configuração do Supabase incompleta. Verifique as variáveis de ambiente.';
+      }
+      
+      setError(userFriendlyMessage);
       toast({
         variant: "destructive",
         title: "Erro no login",
-        description: err instanceof Error ? err.message : 'Erro ao fazer login',
+        description: userFriendlyMessage,
       });
     } finally {
       setIsLoading(false);

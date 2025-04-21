@@ -31,7 +31,7 @@ const mockTables = [
   { name: "processes", rows: 187, size: "5.7 MB", lastUpdated: "2025-04-19 15:20", backupStatus: "success" },
   { name: "documents", rows: 412, size: "15.3 MB", lastUpdated: "2025-04-19 11:10", backupStatus: "success" },
   { name: "infractions", rows: 756, size: "4.2 MB", lastUpdated: "2025-04-19 09:30", backupStatus: "success" },
-  { name: "notifications", rows: 1245, size: "3.8 MB", lastUpdated: "2025-04-19 16:45", backupStatus: "warning" },
+  { name: "notifications", rows: 1245, size: "3.8 MB", lastUpdated: "2025-04-19 16:45", backupStatus: "pending" },
   { name: "schedules", rows: 156, size: "1.5 MB", lastUpdated: "2025-04-19 13:20", backupStatus: "success" },
 ];
 
@@ -302,7 +302,7 @@ const DatabaseManagement = () => {
                             <td className="py-3 px-4">{table.size}</td>
                             <td className="py-3 px-4">{table.lastUpdated}</td>
                             <td className="py-3 px-4">
-                              <Badge variant={table.backupStatus === "success" ? "default" : "warning"}>
+                              <Badge variant={table.backupStatus === "success" ? "default" : "secondary"}>
                                 {table.backupStatus === "success" ? "OK" : "Pendente"}
                               </Badge>
                             </td>
@@ -585,3 +585,4 @@ const DatabaseManagement = () => {
 };
 
 export default DatabaseManagement;
+

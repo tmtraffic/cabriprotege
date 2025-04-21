@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ interface SidebarProps {
   userRole: "client" | "employee" | "admin";
 }
 
-const Sidebar = ({ isOpen, userRole }: SidebarProps) => {
+const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
   const location = useLocation();
 
   // Common menu items for all users
@@ -121,7 +120,7 @@ const Sidebar = ({ isOpen, userRole }: SidebarProps) => {
     },
   ];
 
-  // Choose menu items based on user role
+  // Choose menu items based on user role - default to admin
   let menuItems;
   switch (userRole) {
     case "client":
@@ -131,10 +130,9 @@ const Sidebar = ({ isOpen, userRole }: SidebarProps) => {
       menuItems = [...commonMenuItems, ...employeeMenuItems];
       break;
     case "admin":
+    default:
       menuItems = [...commonMenuItems, ...adminMenuItems];
       break;
-    default:
-      menuItems = commonMenuItems;
   }
 
   return (
@@ -155,7 +153,7 @@ const Sidebar = ({ isOpen, userRole }: SidebarProps) => {
               <div className="text-sidebar-foreground">
                 <p className="font-medium text-sm">Bem-vindo(a),</p>
                 <p className="font-bold">
-                  {userRole === "client" ? "Cliente" : userRole === "employee" ? "Funcionário" : "Administrador"}
+                  Administrador
                 </p>
               </div>
             </div>

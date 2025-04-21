@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
@@ -10,7 +9,7 @@ interface LayoutProps {
   children?: React.ReactNode;
 }
 
-const Layout = ({ userRole = "client", children }: LayoutProps) => {
+const Layout = ({ userRole = "admin", children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 

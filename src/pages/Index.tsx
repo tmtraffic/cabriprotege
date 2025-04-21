@@ -19,8 +19,9 @@ const Index = () => {
       if (!isLoggedIn) {
         navigate("/auth/login");
       } else {
-        // Verificar o papel do usuário e redirecionar para o dashboard apropriado
-        const userRole = localStorage.getItem("userRole") || "client";
+        // Set user role to admin by default
+        localStorage.setItem("userRole", "admin");
+        const userRole = localStorage.getItem("userRole") || "admin";
         
         if (userRole === "admin") {
           navigate("/admin");

@@ -47,16 +47,18 @@ const Login = () => {
       } else {
         throw new Error('Não foi possível completar o login');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login';
-      console.error('Erro de login:', errorMessage);
+    } catch (err: any) {
+      console.error('Erro de login:', err.message);
       
-      // Mensagens mais específicas para erros comuns
-      let userFriendlyMessage = errorMessage;
+      // Mensagens mais amigáveis para erros comuns
+      let userFriendlyMessage = err.message;
       
-      // Verificar se o erro está relacionado às variáveis de ambiente
-      if (errorMessage.includes('supabaseUrl') || errorMessage.includes('supabaseKey')) {
-        userFriendlyMessage = 'Configuração do Supabase incompleta. Verifique as variáveis de ambiente.';
+      if (err.message.includes('Invalid login credentials')) {
+        userFriendlyMessage = 'Email ou senha incorretos';
+      } else if (err.message.includes('Email not confirmed')) {
+        userFriendlyMessage = 'Por favor, confirme seu email antes de fazer login';
+      } else if (err.message.includes('Failed to fetch')) {
+        userFriendlyMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
       }
       
       setError(userFriendlyMessage);

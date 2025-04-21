@@ -29,7 +29,7 @@ const Sidebar = ({ isOpen, userRole }: SidebarProps) => {
     {
       title: "Dashboard",
       icon: Home,
-      href: "/",
+      href: userRole === "client" ? "/dashboard" : userRole === "employee" ? "/employee" : "/admin",
     },
   ];
 

@@ -86,6 +86,22 @@ const App = () => (
             </Layout>
           } />
           
+          {/* Versões em português das rotas */}
+          <Route path="/veiculos" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <VehicleRegistration />
+              </Suspense>
+            </Layout>
+          } />
+          <Route path="/veiculos/novo" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <VehicleRegistration />
+              </Suspense>
+            </Layout>
+          } />
+          
           {/* Rotas para Processos */}
           <Route path="/processos" element={
             <Layout userRole="employee">
@@ -98,6 +114,38 @@ const App = () => (
             <Layout userRole="employee">
               <Suspense fallback={<PageLoader />}>
                 <ProcessManagement />
+              </Suspense>
+            </Layout>
+          } />
+          
+          {/* Versões em inglês das rotas */}
+          <Route path="/processes" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <ProcessManagement />
+              </Suspense>
+            </Layout>
+          } />
+          <Route path="/processes/new" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <ProcessManagement />
+              </Suspense>
+            </Layout>
+          } />
+          
+          {/* Outras rotas em português */}
+          <Route path="/clientes" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
+              </Suspense>
+            </Layout>
+          } />
+          <Route path="/clientes/novo" element={
+            <Layout userRole="employee">
+              <Suspense fallback={<PageLoader />}>
+                <ClientRegistration />
               </Suspense>
             </Layout>
           } />
@@ -125,6 +173,13 @@ const App = () => (
               </Suspense>
             </Layout>
           } />
+          <Route path="/reports" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <Reports />
+              </Suspense>
+            </Layout>
+          } />
           
           {/* Configurações */}
           <Route path="/configuracoes" element={
@@ -132,6 +187,43 @@ const App = () => (
               <Suspense fallback={<PageLoader />}>
                 <Settings />
               </Suspense>
+            </Layout>
+          } />
+          <Route path="/settings" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
+            </Layout>
+          } />
+          
+          {/* Documentos */}
+          <Route path="/documentos" element={
+            <Layout userRole="employee">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">Documentos</h1>
+                <p className="text-muted-foreground">Gerencie os documentos relacionados aos processos e veículos.</p>
+              </div>
+            </Layout>
+          } />
+          
+          {/* Notificações */}
+          <Route path="/notificacoes" element={
+            <Layout userRole="employee">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">Notificações</h1>
+                <p className="text-muted-foreground">Veja as notificações e alertas do sistema.</p>
+              </div>
+            </Layout>
+          } />
+          
+          {/* Agenda */}
+          <Route path="/agenda" element={
+            <Layout userRole="employee">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">Agenda</h1>
+                <p className="text-muted-foreground">Gerencie compromissos e prazos importantes.</p>
+              </div>
             </Layout>
           } />
           

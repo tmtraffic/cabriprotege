@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -6,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Car, FileText, AlertTriangle, Calendar, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
-
 const ClientDashboard = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Visão Geral</h1>
         <div className="flex items-center gap-2">
           <Button variant="secondary" asChild>
             <Link to="/processos/novo">Novo Recurso</Link>
@@ -277,8 +274,6 @@ const ClientDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default ClientDashboard;

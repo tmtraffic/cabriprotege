@@ -1,33 +1,18 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Bell, User, Menu } from "lucide-react";
-
 interface HeaderProps {
   toggleSidebar: () => void;
 }
-
-const Header = ({ toggleSidebar }: HeaderProps) => {
+const Header = ({
+  toggleSidebar
+}: HeaderProps) => {
   const [notifications, setNotifications] = useState(3);
-
-  return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background">
+  return <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mr-2 md:hidden"
-          onClick={toggleSidebar}
-        >
+        <Button variant="ghost" size="icon" className="mr-2 md:hidden" onClick={toggleSidebar}>
           <Menu className="h-5 w-5" />
           <span className="sr-only">Abrir menu</span>
         </Button>
@@ -39,9 +24,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
               <div className="w-8 h-8 rounded-full bg-cabricop-blue flex items-center justify-center text-white font-bold">
                 C
               </div>
-              <span className="font-bold text-lg hidden md:inline-block text-cabricop-blue">
-                Cabricop Traffic Resources
-              </span>
+              <span className="font-bold text-lg hidden md:inline-block text-cabricop-blue">CabriProtege</span>
             </Link>
           </div>
           
@@ -50,11 +33,9 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-cabricop-orange text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {notifications > 0 && <span className="absolute -top-1 -right-1 bg-cabricop-orange text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                       {notifications}
-                    </span>
-                  )}
+                    </span>}
                   <span className="sr-only">Notificações</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -92,8 +73,6 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
           </div>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;

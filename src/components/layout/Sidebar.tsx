@@ -14,6 +14,11 @@ import {
   Search,
   BarChart2,
   Home,
+  UserCheck,
+  Import,
+  Webhook,
+  AlertTriangle,
+  MessageSquare
 } from "lucide-react";
 
 interface SidebarProps {
@@ -98,6 +103,21 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
       icon: Calendar,
       href: "/agenda",
     },
+    {
+      title: "Consulta Avançada",
+      icon: Search,
+      href: "/search",
+    },
+    {
+      title: "CRM",
+      icon: MessageSquare,
+      href: "/crm",
+    },
+    {
+      title: "Importação",
+      icon: Import,
+      href: "/import",
+    },
   ];
 
   // Admin-specific menu items
@@ -122,6 +142,16 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
       title: "Base de Dados",
       icon: Database,
       href: "/dados",
+    },
+    {
+      title: "Conf. Infrações",
+      icon: AlertTriangle,
+      href: "/admin/infraction-config",
+    },
+    {
+      title: "Conf. Webhooks",
+      icon: Webhook,
+      href: "/admin/webhook-config",
     },
   ];
 
@@ -165,23 +195,25 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                location.pathname === item.href
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.title}</span>
-            </Link>
-          ))}
-        </nav>
+        <div className="flex-1 overflow-auto">
+          <nav className="space-y-1">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                  location.pathname === item.href
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.title}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="mt-auto">
           <Link

@@ -1,15 +1,44 @@
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Bell, User, Menu } from "lucide-react";
+import { Bell, User, Menu, Settings, LogOut } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+
 interface HeaderProps {
   toggleSidebar: () => void;
 }
+
 const Header = ({
   toggleSidebar
 }: HeaderProps) => {
   const [notifications, setNotifications] = useState(3);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    // Aqui seria implementada a lógica real de logout
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso",
+    });
+    // Redirecionar para a página de login após logout
+    setTimeout(() => navigate('/auth/login'), 1000);
+  };
+
+  const handleNavigateToProfile = () => {
+    toast({
+      title: "Perfil",
+      description: "Navegando para página de perfil do usuário",
+    });
+    // Aqui seria implementada a navegação para o perfil
+  };
+
+  const handleNavigateToSettings = () => {
+    navigate('/configuracoes');
+  };
+
   return <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
         <Button variant="ghost" size="icon" className="mr-2 md:hidden" onClick={toggleSidebar}>
@@ -64,10 +93,19 @@ const Header = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Perfil</DropdownMenuItem>
-                <DropdownMenuItem>Configurações</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">
+                  <User className="h-4 w-4 mr-2" />
+                  Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigateToSettings} className="cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configurações
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Sair</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -75,4 +113,5 @@ const Header = ({
       </div>
     </header>;
 };
+
 export default Header;

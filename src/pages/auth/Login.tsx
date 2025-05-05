@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Mail, Key, Loader2 } from 'lucide-react';
+import { AlertTriangle, Mail, Key, Loader2, Info } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -17,33 +17,23 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  const { signIn } = useSupabaseAuth();
+  const { signIn, user, session, loading } = useSupabaseAuth();
   const { toast } = useToast();
 
   // Check if user is already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data } = await signIn.supabase.auth.getSession();
-        if (data.session) {
-          // User is already logged in, redirect based on role
-          redirectUserBasedOnEmail(data.session.user.email || '');
-        }
-      } catch (error) {
-        console.error('Erro ao verificar sessão:', error);
-      }
-    };
-    
-    checkSession();
-  }, []);
+    if (user && session) {
+      redirectUserBasedOnEmail(user.email || '');
+    }
+  }, [user, session]);
 
   const redirectUserBasedOnEmail = (email: string) => {
     if (email.includes('admin')) {
-      navigate('/admin');
+      navigate('/admin', { replace: true });
     } else if (email.includes('employee')) {
-      navigate('/employee');
+      navigate('/employee', { replace: true });
     } else {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   };
 
@@ -57,10 +47,7 @@ const Login = () => {
         throw new Error('Por favor, preencha todos os campos');
       }
 
-      const { data, error } = await signIn.supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await signIn(email, password);
       
       if (error) throw error;
       
@@ -117,6 +104,18 @@ const Login = () => {
       setRememberMe(true);
     }
   }, []);
+
+  // Se ainda estiver carregando o estado inicial de autenticação
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-cabricop-blue" />
+          <p className="text-gray-600">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
@@ -218,6 +217,16 @@ const Login = () => {
                 ) : 'Entrar'}
               </Button>
             </form>
+            
+            <div className="mt-4">
+              <Alert className="bg-blue-50 text-blue-800 border-blue-200">
+                <Info className="h-4 w-4" />
+                <AlertTitle className="text-sm font-medium">Conta de demonstração</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Use admin@exemplo.com / senha123 para testar o sistema
+                </AlertDescription>
+              </Alert>
+            </div>
           </CardContent>
           
           <CardFooter className="flex flex-col space-y-4">

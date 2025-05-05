@@ -12,8 +12,13 @@ export const useSupabaseAuth = () => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setSession(null);
+        } else if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
         setLoading(false);
       }
     );
@@ -30,16 +35,19 @@ export const useSupabaseAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) throw error;
-      return data;
-    } catch (error) {
+      return { data, error: null };
+    } catch (error: any) {
       console.error('Erro ao fazer login:', error);
-      throw error;
+      return { data: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,40 +56,65 @@ export const useSupabaseAuth = () => {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-    } catch (error) {
+      return { error: null };
+    } catch (error: any) {
       console.error('Erro ao fazer logout:', error);
-      throw error;
+      return { error };
     } finally {
       setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, userData?: Record<string, any>) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: userData
+        }
       });
       
       if (error) throw error;
-      return data;
-    } catch (error) {
+      return { data, error: null };
+    } catch (error: any) {
       console.error('Erro ao criar conta:', error);
-      throw error;
+      return { data: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/auth/update-password',
       });
       
       if (error) throw error;
-      return { success: true };
-    } catch (error) {
+      return { success: true, error: null };
+    } catch (error: any) {
       console.error('Erro ao solicitar redefinição de senha:', error);
-      throw error;
+      return { success: false, error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (error: any) {
+      console.error('Erro ao atualizar senha:', error);
+      return { success: false, error };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,12 +122,11 @@ export const useSupabaseAuth = () => {
     user,
     session,
     loading,
-    signIn: {
-      execute: signIn,
-      supabase
-    },
+    signIn,
     signOut,
     signUp,
     resetPassword,
+    updatePassword,
+    supabase
   };
 };

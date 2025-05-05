@@ -17,18 +17,24 @@ const Header = ({
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut } = useSupabaseAuth();
+  const { signOut, user } = useSupabaseAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      const { error } = await signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso",
       });
+      
       // Redirecionar para a página de login após logout
-      setTimeout(() => navigate('/auth/login'), 1000);
-    } catch (error) {
+      navigate('/auth/login');
+    } catch (error: any) {
       console.error('Erro ao fazer logout:', error);
       toast({
         variant: "destructive",
@@ -48,6 +54,16 @@ const Header = ({
 
   const handleNavigateToSettings = () => {
     navigate('/configuracoes');
+  };
+
+  const getUserInitials = () => {
+    if (!user || !user.email) return 'U';
+    
+    const parts = user.email.split('@')[0].split('.');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
   };
 
   return <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -79,29 +95,54 @@ const Header = ({
                   <span className="sr-only">Notificações</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel>Notificações</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  Nova multa detectada para veículo ABC-1234
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  Prazo de recurso em 3 dias para processo #12345
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  Documento aprovado para análise
+                <div className="max-h-80 overflow-auto">
+                  <DropdownMenuItem className="p-3 cursor-pointer">
+                    <div className="flex flex-col space-y-1">
+                      <span className="font-medium">Nova multa detectada</span>
+                      <span className="text-sm text-muted-foreground">Veículo ABC-1234 recebeu uma nova multa por excesso de velocidade</span>
+                      <span className="text-xs text-gray-400">Há 2 horas</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-3 cursor-pointer">
+                    <div className="flex flex-col space-y-1">
+                      <span className="font-medium">Prazo de recurso</span>
+                      <span className="text-sm text-muted-foreground">O recurso #12345 vence em 3 dias</span>
+                      <span className="text-xs text-gray-400">Há 1 dia</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-3 cursor-pointer">
+                    <div className="flex flex-col space-y-1">
+                      <span className="font-medium">Documento aprovado</span>
+                      <span className="text-sm text-muted-foreground">O documento do processo #45678 foi aprovado para análise</span>
+                      <span className="text-xs text-gray-400">Há 3 dias</span>
+                    </div>
+                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="text-center cursor-pointer">
+                  <Link to="/notificacoes" className="w-full text-center text-sm text-blue-600">
+                    Ver todas as notificações
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" className="relative flex items-center gap-2 focus:ring-0">
+                  <div className="h-8 w-8 rounded-full bg-cabricop-blue/90 flex items-center justify-center text-white font-medium text-sm">
+                    {getUserInitials()}
+                  </div>
+                  <span className="hidden md:block text-sm font-medium">
+                    {user?.email ? user.email.split('@')[0] : 'Usuário'}
+                  </span>
                   <span className="sr-only">Menu do usuário</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">

@@ -1,22 +1,51 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Mail, Key, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useSupabaseAuth();
   const { toast } = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await signIn.supabase.auth.getSession();
+        if (data.session) {
+          // User is already logged in, redirect based on role
+          redirectUserBasedOnEmail(data.session.user.email || '');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error);
+      }
+    };
+    
+    checkSession();
+  }, []);
+
+  const redirectUserBasedOnEmail = (email: string) => {
+    if (email.includes('admin')) {
+      navigate('/admin');
+    } else if (email.includes('employee')) {
+      navigate('/employee');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,22 +57,28 @@ const Login = () => {
         throw new Error('Por favor, preencha todos os campos');
       }
 
-      const { user } = await signIn(email, password);
-
-      if (user) {
+      const { data, error } = await signIn.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      if (data?.user) {
         toast({
           title: "Login realizado com sucesso",
-          description: `Bem-vindo, ${user.email}!`,
+          description: `Bem-vindo, ${data.user.email}!`,
         });
 
-        // Redirecionamento baseado no email
-        if (email.includes('admin')) {
-          navigate('/admin');
-        } else if (email.includes('employee')) {
-          navigate('/employee');
+        // Salvar email no localStorage se "lembrar-me" estiver marcado
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
         } else {
-          navigate('/dashboard');
+          localStorage.removeItem('rememberedEmail');
         }
+
+        // Redirecionamento baseado no email
+        redirectUserBasedOnEmail(email);
       } else {
         throw new Error('Não foi possível completar o login');
       }
@@ -59,6 +94,8 @@ const Login = () => {
         userFriendlyMessage = 'Por favor, confirme seu email antes de fazer login';
       } else if (err.message.includes('Failed to fetch')) {
         userFriendlyMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+      } else if (err.message.includes('Too many requests')) {
+        userFriendlyMessage = 'Muitas tentativas. Tente novamente mais tarde.';
       }
       
       setError(userFriendlyMessage);
@@ -72,68 +109,135 @@ const Login = () => {
     }
   };
 
+  // Carregar email lembrado ao iniciar
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-center mb-6">Login do Sistema Cabricop</h2>
-        
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="Digite seu e-mail" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-lg border-t-4 border-t-cabricop-blue">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-cabricop-blue flex items-center justify-center text-white text-2xl font-bold">
+                CP
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">
+              Sistema CabriProtege
+            </CardTitle>
+            <CardDescription className="text-center">
+              Entre com suas credenciais para acessar o sistema
+            </CardDescription>
+          </CardHeader>
           
-          <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input 
-              id="password" 
-              type="password" 
-              placeholder="Digite sua senha" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </div>
+          <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Erro</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  E-mail
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                    <Mail size={18} />
+                  </div>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="Digite seu e-mail" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Senha
+                  </Label>
+                  <Link 
+                    to="/auth/reset-password" 
+                    className="text-xs text-cabricop-blue hover:underline"
+                  >
+                    Esqueceu sua senha?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                    <Key size={18} />
+                  </div>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="Digite sua senha" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                />
+                <Label htmlFor="remember" className="text-sm text-gray-500">
+                  Lembrar meu e-mail
+                </Label>
+              </div>
+              
+              <Button type="submit" className="w-full bg-cabricop-blue hover:bg-cabricop-blue/90" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Entrando...
+                  </>
+                ) : 'Entrar'}
+              </Button>
+            </form>
+          </CardContent>
           
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Entrando...' : 'Entrar'}
-          </Button>
-
-          <div className="text-center mt-4">
-            <a href="#" className="text-sm text-blue-600 hover:underline">
-              Esqueceu sua senha?
-            </a>
-          </div>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-gray-600">
-          Novo cliente? 
-          <Button 
-            variant="link" 
-            className="ml-2 text-cabricop-blue"
-            onClick={() => navigate('/clients/new')}
-            disabled={isLoading}
-          >
-            Cadastre-se aqui
-          </Button>
-        </div>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-center text-sm text-gray-600 mt-2">
+              Novo cliente? 
+              <Button 
+                variant="link" 
+                className="text-cabricop-blue"
+                onClick={() => navigate('/clients/new')}
+                disabled={isLoading}
+              >
+                Cadastre-se aqui
+              </Button>
+            </div>
+            
+            <div className="text-center text-xs text-gray-500">
+              &copy; {new Date().getFullYear()} CabriProtege. Todos os direitos reservados.
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

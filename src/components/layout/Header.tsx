@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Bell, User, Menu, Settings, LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -16,15 +17,25 @@ const Header = ({
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut } = useSupabaseAuth();
 
-  const handleLogout = () => {
-    // Aqui seria implementada a lógica real de logout
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso",
-    });
-    // Redirecionar para a página de login após logout
-    setTimeout(() => navigate('/auth/login'), 1000);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+      // Redirecionar para a página de login após logout
+      setTimeout(() => navigate('/auth/login'), 1000);
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao sair",
+        description: "Não foi possível concluir o logout. Tente novamente.",
+      });
+    }
   };
 
   const handleNavigateToProfile = () => {

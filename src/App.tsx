@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import WebhookConfig from "./components/integration/WebhookConfig";
 
 import UserManagement from "./pages/users/UserManagement";
 import DatabaseManagement from "./pages/database/DatabaseManagement";
+import GatewayDashboard from "./pages/gateway/GatewayDashboard";
 
 import { lazy, Suspense } from "react";
 
@@ -52,6 +52,9 @@ const App = () => (
           
           <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
           
+          {/* Nova rota para o API Gateway */}
+          <Route path="/gateway" element={<Layout userRole="admin"><GatewayDashboard /></Layout>} />
+          
           <Route path="/clients" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
@@ -59,6 +62,7 @@ const App = () => (
               </Suspense>
             </Layout>
           } />
+          
           <Route path="/clients/new" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>

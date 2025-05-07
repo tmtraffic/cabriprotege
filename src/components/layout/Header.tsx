@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Bell, User, Menu, Settings, LogOut } from "lucide-react";
+import { Bell, User, Menu, Settings, LogOut, Activity } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
@@ -82,6 +82,19 @@ const Header = ({
               </div>
               <span className="font-bold text-lg hidden md:inline-block text-cabricop-blue">CabriProtege</span>
             </Link>
+            
+            {/* Quick links */}
+            <div className="ml-6 hidden md:flex items-center space-x-1">
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">Dashboard</Button>
+              </Link>
+              <Link to="/gateway">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  API Gateway
+                </Button>
+              </Link>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">

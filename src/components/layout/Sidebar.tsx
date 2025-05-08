@@ -1,27 +1,16 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import {
-  User,
-  Car,
-  FileText,
-  Bell,
-  Settings,
-  Users,
-  Database,
-  Calendar,
-  Search,
-  BarChart2,
-  Home,
-  UserCheck,
-  Import,
-  Webhook,
-  AlertTriangle,
-  MessageSquare,
-  LayoutDashboard,
-  ListTree
-} from "lucide-react";
+
+// Import components
+import SidebarUser from "./sidebar/SidebarUser";
+import MenuSection from "./sidebar/MenuSection";
+import MicroservicesSection from "./sidebar/MicroservicesSection";
+import SupportLink from "./sidebar/SupportLink";
+
+// Import menu configurations
+import { getRoleMenuItems, microservicesItems } from "./sidebar/menuConfigs";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -35,146 +24,8 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
     role: userRole
   };
 
-  // Common menu items for all users
-  const commonMenuItems = [
-    {
-      title: "Dashboard",
-      icon: Home,
-      href: userRole === "client" ? "/dashboard" : userRole === "employee" ? "/employee" : "/admin",
-    },
-  ];
-
-  // Client-specific menu items
-  const clientMenuItems = [
-    {
-      title: "Meus Veículos",
-      icon: Car,
-      href: "/veiculos",
-    },
-    {
-      title: "Processos",
-      icon: FileText,
-      href: "/processos",
-    },
-    {
-      title: "Documentos",
-      icon: FileText,
-      href: "/documentos",
-    },
-    {
-      title: "Notificações",
-      icon: Bell,
-      href: "/notificacoes",
-    },
-    {
-      title: "Agenda",
-      icon: Calendar,
-      href: "/agenda",
-    },
-  ];
-
-  // Microservices section - new addition
-  const microservicesItems = [
-    {
-      title: "API Gateway",
-      icon: ListTree,
-      href: "/gateway",
-    },
-    {
-      title: "Serviço de Infrações",
-      icon: AlertTriangle,
-      href: "/infractions",
-    },
-  ];
-
-  // Employee-specific menu items
-  const employeeMenuItems = [
-    {
-      title: "Clientes",
-      icon: Users,
-      href: "/clientes",
-    },
-    {
-      title: "Veículos",
-      icon: Car,
-      href: "/veiculos",
-    },
-    {
-      title: "Processos",
-      icon: FileText,
-      href: "/processos",
-    },
-    {
-      title: "Documentos",
-      icon: FileText,
-      href: "/documentos",
-    },
-    {
-      title: "Notificações",
-      icon: Bell,
-      href: "/notificacoes",
-    },
-    {
-      title: "Agenda",
-      icon: Calendar,
-      href: "/agenda",
-    },
-    {
-      title: "Consulta Avançada",
-      icon: Search,
-      href: "/search",
-    },
-    {
-      title: "CRM",
-      icon: MessageSquare,
-      href: "/crm",
-    },
-    {
-      title: "Importação",
-      icon: Import,
-      href: "/import",
-    },
-  ];
-
-  // Admin-specific menu items
-  const adminMenuItems = [
-    ...employeeMenuItems,
-    {
-      title: "Usuários",
-      icon: Users,
-      href: "/usuarios",
-    },
-    {
-      title: "Relatórios",
-      icon: BarChart2,
-      href: "/relatorios",
-    },
-    {
-      title: "Configurações",
-      icon: Settings,
-      href: "/configuracoes",
-    },
-    {
-      title: "Base de Dados",
-      icon: Database,
-      href: "/dados",
-    },
-  ];
-
-  // Choose menu items based on user role - default to admin
-  let menuItems;
-  switch (userRole) {
-    case "client":
-      menuItems = [...commonMenuItems, ...clientMenuItems];
-      break;
-    case "employee":
-      menuItems = [...commonMenuItems, ...employeeMenuItems];
-      break;
-    case "admin":
-    default:
-      menuItems = [...commonMenuItems, ...adminMenuItems];
-      break;
-  }
+  // Get menu items based on user role
+  const menuItems = getRoleMenuItems(userRole);
 
   return (
     <aside
@@ -185,78 +36,25 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
       )}
     >
       <div className="flex flex-col h-full px-3 py-4">
-        <div className="mb-8">
-          <div className="w-full p-3 bg-sidebar-accent rounded-lg mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-white">
-                <User className="h-5 w-5" />
-              </div>
-              <div className="text-sidebar-foreground">
-                <p className="font-medium text-sm">Bem-vindo(a),</p>
-                <p className="font-bold">
-                  {currentUser.name}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SidebarUser name={currentUser.name} role={currentUser.role} />
 
         <div className="flex-1 overflow-auto">
           <nav className="space-y-1">
             {/* Dashboard Section */}
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                  location.pathname === item.href
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.title}</span>
-              </Link>
-            ))}
+            <MenuSection items={menuItems} currentPath={location.pathname} />
 
             {/* Microservices Section - Only for admin */}
             {userRole === "admin" && (
-              <>
-                <div className="pt-4 pb-2">
-                  <p className="px-3 text-xs font-semibold uppercase text-sidebar-foreground opacity-60">
-                    Microserviços
-                  </p>
-                </div>
-                
-                {microservicesItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                      location.pathname === item.href
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </Link>
-                ))}
-              </>
+              <MicroservicesSection 
+                items={microservicesItems} 
+                currentPath={location.pathname} 
+              />
             )}
           </nav>
         </div>
 
         <div className="mt-auto">
-          <Link
-            to="/ajuda"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          >
-            <Search className="h-5 w-5" />
-            <span>Ajuda e Suporte</span>
-          </Link>
+          <SupportLink />
         </div>
       </div>
     </aside>

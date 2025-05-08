@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import WebhookConfig from "./components/integration/WebhookConfig";
 import UserManagement from "./pages/users/UserManagement";
 import DatabaseManagement from "./pages/database/DatabaseManagement";
 import GatewayDashboard from "./pages/gateway/GatewayDashboard";
+import InfractionService from "./pages/infractions/InfractionService"; // Importar o novo serviço
 
 import { lazy, Suspense } from "react";
 
@@ -52,8 +54,9 @@ const App = () => (
           
           <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
           
-          {/* Nova rota para o API Gateway */}
+          {/* Rotas para os microserviços */}
           <Route path="/gateway" element={<Layout userRole="admin"><GatewayDashboard /></Layout>} />
+          <Route path="/infractions" element={<Layout userRole="admin"><InfractionService /></Layout>} />
           
           <Route path="/clients" element={
             <Layout userRole="admin">

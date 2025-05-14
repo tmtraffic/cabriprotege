@@ -1,22 +1,15 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { SearchHistory } from '@/models/SearchHistory';
+import { Separator } from '@/components/ui/separator';
 
 interface SearchDetailsDialogProps {
   open: boolean;
@@ -25,166 +18,178 @@ interface SearchDetailsDialogProps {
   formatDate: (dateString: string) => string;
 }
 
-const SearchDetailsDialog: React.FC<SearchDetailsDialogProps> = ({
+const SearchDetailsDialog = ({
   open,
   onOpenChange,
   selectedEntry,
   formatDate,
-}) => {
+}: SearchDetailsDialogProps) => {
   if (!selectedEntry) return null;
+  
+  // Extract result data
+  const resultData = selectedEntry.result_data;
+  
+  const renderResultData = () => {
+    if (!resultData) {
+      return <p className="text-gray-500">Dados não disponíveis</p>;
+    }
+
+    // Check if result_data is an object with success property
+    const isResultObject = typeof resultData === 'object' && resultData !== null;
+    
+    // Process success result
+    if (isResultObject && 'success' in resultData && resultData.success === true) {
+      if (selectedEntry.search_type === 'cnh') {
+        // Cast resultData to appropriate type after checking it's an object
+        const typedResultData = resultData as { success: boolean, data?: any };
+        
+        return (
+          <div className="space-y-2">
+            <h3 className="font-semibold">Resultado da Consulta CNH</h3>
+            
+            {typedResultData.data && (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">Nome</p>
+                    <p className="text-sm">{typedResultData.data.name || 'Não disponível'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">CNH</p>
+                    <p className="text-sm">{typedResultData.data.cnh || 'Não disponível'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">Categoria</p>
+                    <p className="text-sm">{typedResultData.data.category || 'Não disponível'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">Status</p>
+                    <p className="text-sm">{typedResultData.data.status || 'Não disponível'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">Validade</p>
+                    <p className="text-sm">{typedResultData.data.expirationDate || 'Não disponível'}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500">Pontos</p>
+                    <p className="text-sm">{typedResultData.data.points || '0'}</p>
+                  </div>
+                </>
+              )}
+            </>
+          );
+        }
+        
+        if (selectedEntry.search_type === 'vehicle') {
+          // Cast resultData to appropriate type after checking it's an object
+          const typedResultData = resultData as { success: boolean, data?: any };
+          
+          return (
+            <div className="space-y-2">
+              <h3 className="font-semibold">Resultado da Consulta Veículo</h3>
+              
+              {typedResultData.data && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">Placa</p>
+                      <p className="text-sm">{typedResultData.data.plate || 'Não disponível'}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">Renavam</p>
+                      <p className="text-sm">{typedResultData.data.renavam || 'Não disponível'}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">Modelo</p>
+                      <p className="text-sm">{typedResultData.data.model || 'Não disponível'}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">Ano</p>
+                      <p className="text-sm">{typedResultData.data.year || 'Não disponível'}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500">Proprietário</p>
+                      <p className="text-sm">{typedResultData.data.owner || 'Não disponível'}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        }
+      }
+      
+      // Process error result
+      if (isResultObject && 'error' in resultData && typeof resultData.error === 'string') {
+        return (
+          <div className="space-y-2">
+            <Badge variant="destructive">Erro</Badge>
+            <p className="text-red-500">{resultData.error}</p>
+          </div>
+        );
+      }
+      
+      // Fallback for simple data or unknown format
+      if (isResultObject && 'data' in resultData && resultData.data) {
+        return <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">{JSON.stringify(resultData.data, null, 2)}</pre>;
+      }
+      
+      // Final fallback for any other format
+      return (
+        <div className="space-y-2">
+          <p className="text-sm">Formato de dados não reconhecido.</p>
+          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">{JSON.stringify(resultData, null, 2)}</pre>
+        </div>
+      );
+    };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Detalhes da Consulta</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Data da Consulta</p>
-              <p className="font-semibold">{formatDate(selectedEntry.created_at)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-              <Badge variant={selectedEntry.search_type === 'cnh' ? 'default' : 'secondary'}>
-                {selectedEntry.search_type === 'cnh' ? 'CNH' : 'Veículo'}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">UF</p>
-              <p className="font-semibold">{selectedEntry.uf || 'SP'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Termo Pesquisado</p>
-              <p className="font-semibold">{selectedEntry.search_query}</p>
-            </div>
-          </div>
-          
-          <div className="border-t pt-4">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Dados da Consulta</p>
-            {selectedEntry.result_data && selectedEntry.result_data.success ? (
-              selectedEntry.search_type === 'cnh' ? (
-                // Exibir dados de CNH
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Nome</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Categoria</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.category}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={selectedEntry.result_data.data.status === 'Regular' ? 'default' : 'destructive'}>
-                      {selectedEntry.result_data.data.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pontos</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.points}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Validade</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.expirationDate}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Multas</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.fines?.length || 0}</p>
-                  </div>
+              <h3 className="font-semibold">Informações Gerais</h3>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Tipo</p>
+                  <p className="text-sm">{selectedEntry.search_type === 'cnh' ? 'CNH' : 'Veículo'}</p>
                 </div>
-              ) : (
-                // Exibir dados de veículo
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Placa</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.plate}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Renavam</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.renavam}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Modelo</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.model}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ano</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.year}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Proprietário</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.owner}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Multas</p>
-                    <p className="font-semibold">{selectedEntry.result_data.data.fines?.length || 0}</p>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Data/Hora</p>
+                  <p className="text-sm">{formatDate(selectedEntry.created_at)}</p>
                 </div>
-              )
-            ) : (
-              <div className="bg-red-50 p-4 rounded">
-                <p className="text-red-600">
-                  {selectedEntry.result_data?.error || "Erro ao processar consulta"}
-                </p>
-              </div>
-            )}
-          </div>
-          
-          {selectedEntry.result_data?.data?.fines && selectedEntry.result_data.data.fines.length > 0 && (
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                Multas ({selectedEntry.result_data.data.fines.length})
-              </p>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Auto</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Infração</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedEntry.result_data.data.fines.map((fine: any) => (
-                      <TableRow key={fine.id}>
-                        <TableCell>{fine.autoNumber}</TableCell>
-                        <TableCell>{fine.date}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {fine.infraction}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          R$ {fine.value.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Consulta</p>
+                  <p className="text-sm">{selectedEntry.search_query}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">UF</p>
+                  <p className="text-sm">{selectedEntry.uf || 'SP'}</p>
+                </div>
               </div>
             </div>
-          )}
-          
-          <div className="flex justify-between pt-4 border-t">
-            {selectedEntry.related_client_id || selectedEntry.related_vehicle_id ? (
-              <div className="flex space-x-2">
-                {selectedEntry.related_client_id && (
-                  <Badge variant="outline">Cliente Associado</Badge>
-                )}
-                {selectedEntry.related_vehicle_id && (
-                  <Badge variant="outline">Veículo Associado</Badge>
-                )}
-              </div>
-            ) : (
-              <div></div>
-            )}
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Fechar
-            </Button>
+            
+            <Separator />
+            
+            <div>
+              {renderResultData()}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

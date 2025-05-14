@@ -1,13 +1,22 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory, AdditionalSearchParams, UfOption } from '@/models/SearchHistory';
+import { 
+  SearchResultCNH, 
+  SearchResultVehicle, 
+  SearchResultFine, 
+  SearchHistory, 
+  AdditionalSearchParams, 
+  UfOption,
+  SearchResultDataJson
+} from '@/models/SearchHistory';
 import { toast } from '@/components/ui/use-toast';
 
-type SearchResultData = {
+// Internal type for managing the search results
+interface SearchResultData {
   success: boolean;
   data?: SearchResultCNH | SearchResultVehicle;
   error?: string;
-};
+}
 
 const InfoSimplesService = {
   // Função para pesquisar CNH
@@ -139,11 +148,22 @@ const InfoSimplesService = {
         throw new Error("Usuário não autenticado");
       }
       
+      // Convert to a JSON-safe format before saving to Supabase
+      const resultDataJson: SearchResultDataJson = {
+        success: resultData.success,
+        error: resultData.error
+      };
+      
+      // Convert complex objects to plain objects
+      if (resultData.data) {
+        resultDataJson.data = JSON.parse(JSON.stringify(resultData.data));
+      }
+      
       await supabase.from('search_history').insert({
         search_type: searchType,
         search_query: searchQuery,
         user_id: user.id,
-        result_data: resultData,
+        result_data: resultDataJson,
         uf: uf
       });
     } catch (error) {

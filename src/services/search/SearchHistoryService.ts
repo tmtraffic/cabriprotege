@@ -18,10 +18,10 @@ export const SearchHistoryService = {
       }
       
       // Convert to a JSON-safe format before saving to Supabase
-      const resultDataJson: Record<string, any> = {
+      const resultDataJson = {
         success: resultData.success,
         error: resultData.error
-      };
+      } as Record<string, any>;
       
       // Convert complex objects to plain objects
       if (resultData.data) {

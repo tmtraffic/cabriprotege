@@ -53,6 +53,48 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          drive_file_id: string
+          entity_id: string
+          entity_type: string
+          file_type: string | null
+          id: string
+          name: string
+          owner_id: string
+          size: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          drive_file_id: string
+          entity_id: string
+          entity_type: string
+          file_type?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          size?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          drive_file_id?: string
+          entity_id?: string
+          entity_type?: string
+          file_type?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          size?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       infractions: {
         Row: {
           auto_number: string | null

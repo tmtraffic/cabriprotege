@@ -1,120 +1,162 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory } from '@/models/SearchHistory';
-
-// This would normally be stored in environment variables
-const API_BASE_URL = "https://api.infosimples.com/api/v2";
+import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory, AdditionalSearchParams, UfOption } from '@/models/SearchHistory';
+import { toast } from '@/components/ui/use-toast';
 
 const InfoSimplesService = {
-  // Function to search CNH data
-  async searchCNH(cnhNumber: string): Promise<SearchResultCNH | null> {
+  // Função para pesquisar CNH
+  async searchCNH(cnhNumber: string, uf: UfOption = 'SP', additionalParams: AdditionalSearchParams = {}): Promise<SearchResultCNH | null> {
     try {
-      // In a real implementation, this would call the InfoSimples API
-      // For now, we'll use mock data for demonstration
-      
-      // Log the search in our history
-      const user = supabase.auth.getUser();
+      // Validar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error("User not authenticated");
+        throw new Error("Usuário não autenticado");
       }
       
-      // Mock API call (simulating a delay)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Chamada para a Edge Function
+      const { data, error } = await supabase.functions.invoke('infosimples-api', {
+        body: {
+          searchType: 'cnh',
+          searchQuery: cnhNumber,
+          uf: uf,
+          additionalParams
+        }
+      });
       
-      // Mock data
-      const mockResult: SearchResultCNH = {
-        name: "Tiago Medeiros",
-        cnh: cnhNumber,
-        category: "AB",
-        status: "Regular",
-        expirationDate: "10/05/2025",
-        points: 12,
-        fines: this.getMockFines()
+      if (error) {
+        console.error("Erro na chamada à Edge Function:", error);
+        throw new Error(`Erro na consulta: ${error.message}`);
+      }
+      
+      if (!data.success) {
+        throw new Error(data.error || "Erro desconhecido na consulta");
+      }
+      
+      const result: SearchResultCNH = {
+        ...data.data,
+        uf: uf
       };
       
-      // Save search history
-      await this.saveSearchHistory('cnh', cnhNumber, mockResult);
+      // Salvar no histórico de busca
+      await this.saveSearchHistory('cnh', cnhNumber, result, uf);
       
-      return mockResult;
+      return result;
     } catch (error) {
-      console.error("Error searching CNH:", error);
+      console.error("Erro ao pesquisar CNH:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro na consulta",
+        description: error.message || "Ocorreu um erro ao consultar a API. Tente novamente mais tarde."
+      });
       throw error;
     }
   },
   
-  // Function to search vehicle data
-  async searchVehicle(plate: string): Promise<SearchResultVehicle | null> {
+  // Função para pesquisar veículo
+  async searchVehicle(plate: string, uf: UfOption = 'SP', additionalParams: AdditionalSearchParams = {}): Promise<SearchResultVehicle | null> {
     try {
-      // In a real implementation, this would call the InfoSimples API
-      // For now, we'll use mock data for demonstration
+      // Validar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
       
-      // Mock API call (simulating a delay)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Chamada para a Edge Function
+      const { data, error } = await supabase.functions.invoke('infosimples-api', {
+        body: {
+          searchType: 'vehicle',
+          searchQuery: plate,
+          uf: uf,
+          additionalParams
+        }
+      });
       
-      // Mock data
-      const mockResult: SearchResultVehicle = {
-        plate: plate,
-        renavam: "01234567890",
-        model: "HONDA/CIVIC EXL CVT",
-        year: "2019/2020",
-        owner: "ALEXANDER FLORENTINO DE SOUZA",
-        fines: this.getMockFines()
+      if (error) {
+        console.error("Erro na chamada à Edge Function:", error);
+        throw new Error(`Erro na consulta: ${error.message}`);
+      }
+      
+      if (!data.success) {
+        throw new Error(data.error || "Erro desconhecido na consulta");
+      }
+      
+      const result: SearchResultVehicle = {
+        ...data.data,
+        uf: uf
       };
       
-      // Save search history
-      await this.saveSearchHistory('vehicle', plate, mockResult);
+      // Salvar no histórico de busca
+      await this.saveSearchHistory('vehicle', plate, result, uf);
       
-      return mockResult;
+      return result;
     } catch (error) {
-      console.error("Error searching vehicle:", error);
+      console.error("Erro ao pesquisar veículo:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro na consulta",
+        description: error.message || "Ocorreu um erro ao consultar a API. Tente novamente mais tarde."
+      });
       throw error;
     }
   },
   
-  // Helper function to save search history
+  // Função auxiliar para salvar histórico de busca
   async saveSearchHistory(
-    searchType: 'cnh' | 'vehicle', 
-    searchQuery: string, 
-    resultData: any
+    searchType: 'cnh' | 'vehicle',
+    searchQuery: string,
+    resultData: any,
+    uf?: string
   ): Promise<void> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        throw new Error("User not authenticated");
+        throw new Error("Usuário não autenticado");
       }
       
       await supabase.from('search_history').insert({
         search_type: searchType,
         search_query: searchQuery,
         user_id: user.id,
-        result_data: resultData
+        result_data: resultData,
+        uf: uf
       });
     } catch (error) {
-      console.error("Error saving search history:", error);
+      console.error("Erro ao salvar histórico de busca:", error);
     }
   },
   
-  // Function to get search history
-  async getSearchHistory(): Promise<SearchHistory[]> {
+  // Função para obter histórico de busca
+  async getSearchHistory(filters: { searchType?: 'cnh' | 'vehicle', uf?: string } = {}): Promise<SearchHistory[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('search_history')
         .select('*')
         .order('created_at', { ascending: false });
       
+      // Aplicar filtros se fornecidos
+      if (filters.searchType) {
+        query = query.eq('search_type', filters.searchType);
+      }
+      
+      if (filters.uf) {
+        query = query.eq('uf', filters.uf);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) throw error;
       return data as SearchHistory[] || [];
     } catch (error) {
-      console.error("Error getting search history:", error);
+      console.error("Erro ao obter histórico de busca:", error);
       return [];
     }
   },
   
-  // Function to update search history with related client or vehicle
+  // Função para atualizar histórico de busca com cliente ou veículo relacionado
   async updateSearchHistory(
-    searchId: string, 
-    relatedClientId?: string, 
+    searchId: string,
+    relatedClientId?: string,
     relatedVehicleId?: string
   ): Promise<void> {
     try {
@@ -133,11 +175,43 @@ const InfoSimplesService = {
         .update(updates)
         .eq('id', searchId);
     } catch (error) {
-      console.error("Error updating search history:", error);
+      console.error("Erro ao atualizar histórico de busca:", error);
     }
   },
   
-  // Mock function to generate sample fines
+  // Função para exportar histórico de busca em CSV
+  async exportSearchHistory(filters: { searchType?: 'cnh' | 'vehicle', uf?: string } = {}): Promise<string> {
+    try {
+      const history = await this.getSearchHistory(filters);
+      
+      if (!history || history.length === 0) {
+        throw new Error("Nenhum registro encontrado para exportar");
+      }
+      
+      let csv = "ID,Tipo,Consulta,UF,Data,Cliente,Veículo\n";
+      
+      history.forEach(item => {
+        const row = [
+          item.id,
+          item.search_type === 'cnh' ? 'CNH' : 'Veículo',
+          item.search_query,
+          item.uf || 'SP',
+          new Date(item.created_at).toLocaleString(),
+          item.related_client_id || '',
+          item.related_vehicle_id || ''
+        ];
+        
+        csv += row.join(',') + '\n';
+      });
+      
+      return csv;
+    } catch (error) {
+      console.error("Erro ao exportar histórico:", error);
+      throw error;
+    }
+  },
+  
+  // Mock function para gerar amostras de multas (mantida para compatibilidade)
   getMockFines(): SearchResultFine[] {
     return [
       {

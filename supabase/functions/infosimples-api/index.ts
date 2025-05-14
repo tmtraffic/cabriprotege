@@ -1,19 +1,87 @@
 
-// This is a placeholder for a real Edge Function implementation
-// In a real implementation, this would securely call the InfoSimples API
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
 
-// Constants for InfoSimples API (should be environment variables)
-// const INFOSIMPLES_API_KEY = Deno.env.get("INFOSIMPLES_API_KEY");
-// const INFOSIMPLES_USER_ID = Deno.env.get("INFOSIMPLES_USER_ID");
+// API da InfoSimples
+const INFOSIMPLES_API_TOKEN = Deno.env.get("INFOSIMPLES_API_TOKEN");
+const INFOSIMPLES_USER_ID = Deno.env.get("INFOSIMPLES_USER_ID");
 
-serve(async (req) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
+// Constantes
+const API_BASE_URL = "https://api.infosimples.com/api/v2";
+const MAX_RETRIES = 3;
+const TIMEOUT_MS = 600000; // 600 segundos (10 minutos)
 
+// Headers CORS
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+};
+
+// Função para realizar chamadas à API com retry
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MAX_RETRIES) {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Verificar rate limit
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get("retry-after") || "0", 10);
+        const delayMs = retryAfter > 0 ? retryAfter * 1000 : Math.min(1000 * 2 ** attempt, 30000);
+        
+        console.log(`Rate limit atingido. Aguardando ${delayMs}ms antes de tentar novamente.`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      console.error(`Tentativa ${attempt + 1} falhou:`, error);
+      lastError = error;
+      
+      // Aguardar antes de tentar novamente (com backoff exponencial)
+      if (attempt < maxRetries) {
+        const delayMs = Math.min(1000 * 2 ** attempt, 30000);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  
+  throw lastError || new Error("Erro desconhecido ao fazer requisição à API");
+}
+
+// Manipulador de erros da API InfoSimples
+function handleInfosimplesError(code: number, message: string) {
+  switch (code) {
+    case 200:
+    case 201:
+      return null; // Sem erro
+    case 601:
+      return new Error('Autenticação falhou. Verifique seu token de API.');
+    case 605:
+      return new Error('Tempo limite excedido. A consulta demorou muito para ser processada.');
+    case 612:
+      return new Error('Registro não encontrado com os parâmetros fornecidos.');
+    case 618:
+      return new Error('Limite de requisições excedido. Tente novamente mais tarde.');
+    default:
+      return new Error(`Erro ${code}: ${message}`);
+  }
+}
+
+// Função principal de processamento de requisições
+serve(async (req: Request) => {
+  // Lidar com requisições CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
@@ -21,95 +89,166 @@ serve(async (req) => {
   }
 
   try {
-    const { searchType, searchQuery } = await req.json();
+    // Verificar se as credenciais da API foram configuradas
+    if (!INFOSIMPLES_API_TOKEN || !INFOSIMPLES_USER_ID) {
+      throw new Error("Credenciais da API InfoSimples não configuradas");
+    }
+
+    const { searchType, searchQuery, uf, additionalParams = {} } = await req.json();
     
-    // In a real implementation, we would call the InfoSimples API here
-    // For example:
-    // const apiUrl = `https://api.infosimples.com/api/v2/${searchType}?q=${searchQuery}&api_key=${INFOSIMPLES_API_KEY}&user_id=${INFOSIMPLES_USER_ID}`;
-    // const response = await fetch(apiUrl);
-    // const data = await response.json();
+    // Validar parâmetros obrigatórios
+    if (!searchType || !searchQuery) {
+      throw new Error("Parâmetros de busca incompletos");
+    }
     
-    // For now, return mock data
-    let mockData;
+    // Determinar o endpoint com base no tipo de busca e UF (padrão SP se não informado)
+    const stateUf = uf || "SP";
+    let endpoint = "";
+    let params: Record<string, any> = {};
     
     if (searchType === 'cnh') {
-      mockData = {
+      endpoint = `/detran/${stateUf}/cnh`;
+      
+      // Parâmetros específicos por UF
+      switch (stateUf) {
+        case "SP":
+          params = {
+            numero_registro: searchQuery,
+            data_nascimento: additionalParams.dataNascimento || "",
+          };
+          break;
+        case "PR":
+          params = {
+            cpf: additionalParams.cpf || "",
+            numero_registro: searchQuery,
+          };
+          break;
+        case "MG":
+          params = {
+            cpf: additionalParams.cpf || "",
+            data_nascimento: additionalParams.dataNascimento || "",
+            data_primeira_habilitacao: additionalParams.dataPrimeiraHabilitacao || "",
+          };
+          break;
+        default:
+          // Para outros estados, usamos os parâmetros padrão
+          params = {
+            numero_registro: searchQuery,
+            ...additionalParams
+          };
+      }
+    } else if (searchType === 'vehicle') {
+      endpoint = `/detran/${stateUf}/veiculo`;
+      
+      // Parâmetros específicos por UF
+      switch (stateUf) {
+        case "SP":
+          params = {
+            placa: searchQuery,
+            renavam: additionalParams.renavam || "",
+          };
+          break;
+        case "RJ":
+          params = {
+            placa: searchQuery,
+            renavam: additionalParams.renavam || "",
+            chassi: additionalParams.chassi || "",
+          };
+          break;
+        default:
+          // Para outros estados, usamos os parâmetros padrão
+          params = {
+            placa: searchQuery,
+            renavam: additionalParams.renavam || "",
+            ...additionalParams
+          };
+      }
+    } else {
+      throw new Error("Tipo de busca inválido");
+    }
+    
+    console.log(`Iniciando consulta à API InfoSimples: ${endpoint}`, params);
+    
+    // Montar URL completo
+    const apiUrl = `${API_BASE_URL}${endpoint}`;
+    
+    // Adicionar parâmetros de autenticação
+    params.api_key = INFOSIMPLES_API_TOKEN;
+    params.user_id = INFOSIMPLES_USER_ID;
+    
+    // Converter parâmetros para formato esperado pela API
+    const response = await fetchWithRetry(
+      apiUrl, 
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      }
+    );
+    
+    const responseData = await response.json();
+    console.log(`Resposta da API InfoSimples: Código ${responseData.code}`);
+    
+    // Verificar se houve erro na API
+    const apiError = handleInfosimplesError(responseData.code, responseData.code_message);
+    if (apiError) {
+      throw apiError;
+    }
+    
+    // Processar e normalizar a resposta
+    let normalizedData;
+    if (searchType === 'cnh') {
+      // Normalizar dados da CNH (depende do formato da resposta real)
+      normalizedData = {
         success: true,
         data: {
-          name: "Tiago Medeiros",
+          name: responseData.data?.nome || responseData.data?.name || "Nome não disponível",
           cnh: searchQuery,
-          category: "AB",
-          status: "Regular",
-          expirationDate: "10/05/2025",
-          points: 12,
-          fines: [
-            {
-              id: "1",
-              autoNumber: "I41664643",
-              date: "05/10/2020 10:15",
-              agency: "RENAINF",
-              plate: "KXC2317",
-              owner: "ALEXANDER FLORENTINO DE SOUZA",
-              respPoints: "TIAGO FELIPPE DA SILVA MEDEIROS",
-              situation: "Penalidade - Paga em: 06/08/2020 NOTIFICADA DA PENALIDADE",
-              infraction: "74550 - TRANSITAR EM VELOCIDADE SUPERIOR À MÁXIMA PERMITIDA EM ATÉ 20%",
-              location: "BR101 KM 426.2 - MANGARATIBA",
-              frame: "218 INC I - MÉDIA",
-              points: 4,
-              dueDate: "08/10/2021",
-              value: 130.16,
-              discountValue: 104.12,
-              process: "-"
-            }
-          ]
+          category: responseData.data?.categoria || responseData.data?.category || "Não informada",
+          status: responseData.data?.situacao || responseData.data?.status || "Regular",
+          expirationDate: responseData.data?.validade || responseData.data?.expiration_date || "Não informada",
+          points: responseData.data?.pontuacao || responseData.data?.points || 0,
+          fines: responseData.data?.multas || responseData.data?.fines || []
         }
       };
     } else if (searchType === 'vehicle') {
-      mockData = {
+      // Normalizar dados do veículo (depende do formato da resposta real)
+      normalizedData = {
         success: true,
         data: {
           plate: searchQuery,
-          renavam: "01234567890",
-          model: "HONDA/CIVIC EXL CVT",
-          year: "2019/2020",
-          owner: "ALEXANDER FLORENTINO DE SOUZA",
-          fines: [
-            {
-              id: "1",
-              autoNumber: "I41664643",
-              date: "05/10/2020 10:15",
-              agency: "RENAINF",
-              plate: searchQuery,
-              owner: "ALEXANDER FLORENTINO DE SOUZA",
-              respPoints: "TIAGO FELIPPE DA SILVA MEDEIROS",
-              situation: "Penalidade - Paga em: 06/08/2020 NOTIFICADA DA PENALIDADE",
-              infraction: "74550 - TRANSITAR EM VELOCIDADE SUPERIOR À MÁXIMA PERMITIDA EM ATÉ 20%",
-              location: "BR101 KM 426.2 - MANGARATIBA",
-              frame: "218 INC I - MÉDIA",
-              points: 4,
-              dueDate: "08/10/2021",
-              value: 130.16,
-              discountValue: 104.12,
-              process: "-"
-            }
-          ]
+          renavam: responseData.data?.renavam || "Não disponível",
+          model: responseData.data?.modelo || responseData.data?.model || "Não disponível",
+          year: responseData.data?.ano || responseData.data?.year || "Não disponível",
+          owner: responseData.data?.proprietario || responseData.data?.owner || "Não disponível",
+          fines: responseData.data?.multas || responseData.data?.fines || []
         }
       };
     } else {
-      mockData = {
-        success: false,
-        error: "Invalid search type"
+      normalizedData = {
+        success: true,
+        data: responseData.data
       };
     }
 
-    return new Response(JSON.stringify(mockData), {
+    return new Response(JSON.stringify(normalizedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
     
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Erro na função Edge InfoSimples:", error.message);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });

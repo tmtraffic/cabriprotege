@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Process {
@@ -28,9 +27,19 @@ export interface Process {
   };
 }
 
-export const fetchProcesses = async (userId: string): Promise<Process[]> => {
+export interface ProcessFilters {
+  client_id?: string;
+  status?: string;
+  type?: string;
+  assigned_to?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export const fetchProcesses = async (filters?: ProcessFilters | string): Promise<Process[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("processes")
       .select(`
         *,
@@ -40,8 +49,46 @@ export const fetchProcesses = async (userId: string): Promise<Process[]> => {
         ),
         client:profiles!client_id(name, email),
         assignee:profiles!assigned_to(name)
-      `)
-      .eq("client_id", userId);
+      `);
+
+    // Handle the case where filters is a string (backward compatibility)
+    if (typeof filters === 'string') {
+      // If filters is a string, treat it as client_id
+      query = query.eq("client_id", filters);
+    } else if (filters) {
+      // Apply each filter if it exists
+      if (filters.client_id) {
+        query = query.eq("client_id", filters.client_id);
+      }
+      
+      if (filters.status) {
+        query = query.eq("status", filters.status);
+      }
+      
+      if (filters.type) {
+        query = query.eq("type", filters.type);
+      }
+      
+      if (filters.assigned_to) {
+        query = query.eq("assigned_to", filters.assigned_to);
+      }
+      
+      if (filters.search) {
+        // Search in description or through relations
+        const searchTerm = `%${filters.search.toLowerCase()}%`;
+        query = query.or(`description.ilike.${searchTerm}`);
+      }
+      
+      if (filters.date_from) {
+        query = query.gte("created_at", filters.date_from);
+      }
+      
+      if (filters.date_to) {
+        query = query.lte("created_at", filters.date_to);
+      }
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -136,72 +183,14 @@ export const fetchProcessById = async (processId: string): Promise<Process | nul
 };
 
 export const fetchProcessesByStatus = async (status: string, userId?: string): Promise<Process[]> => {
-  try {
-    let query = supabase
-      .from('processes')
-      .select(`
-        *,
-        infraction:infractions (
-          auto_number,
-          description,
-          value,
-          vehicle:vehicles (
-            plate
-          )
-        ),
-        client:profiles!client_id (
-          name,
-          email
-        ),
-        assignee:profiles!assigned_to (
-          name
-        )
-      `)
-      .eq('status', status);
-    
-    // If userId is provided, filter to only show processes for this user
-    if (userId) {
-      query = query.eq('client_id', userId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error(`Error fetching ${status} processes:`, error);
-      return [];
-    }
-    
-    // Map the data to match our Process interface
-    const processes = data.map(process => ({
-      id: process.id,
-      infraction_id: process.infraction_id,
-      client_id: process.client_id,
-      assigned_to: process.assigned_to,
-      status: process.status as Process['status'],
-      type: process.type as Process['type'],
-      description: process.description,
-      created_at: process.created_at,
-      updated_at: process.updated_at,
-      infraction: process.infraction ? {
-        auto_number: process.infraction.auto_number,
-        description: process.infraction.description,
-        value: process.infraction.value,
-        vehicle: {
-          plate: process.infraction.vehicle?.plate || "Unknown"
-        }
-      } : undefined,
-      client: {
-        name: process.client?.name || "Unknown",
-        email: process.client?.email || ""
-      },
-      assignee: process.assignee ? {
-        name: process.assignee?.name || "Unassigned"
-      } : undefined
-    }));
-    
-    return processes as Process[];
-  } catch (error) {
-    console.error(`Error in fetchProcessesByStatus for ${status}:`, error);
-    return [];
+  // Convert to using the new filters interface
+  const filters: ProcessFilters = {
+    status: status,
+  };
+  
+  if (userId) {
+    filters.client_id = userId;
   }
+  
+  return fetchProcesses(filters);
 };

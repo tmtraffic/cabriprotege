@@ -1,68 +1,84 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Vehicle {
   id: string;
   owner_id: string;
-  plate: string;
-  renavam: string | null;
   brand: string;
   model: string;
+  plate: string;
   year: number | null;
   color: string | null;
+  renavam: string | null;
   professional_use: boolean | null;
   category: string | null;
   created_at: string;
-  updated_at: string;
+  owner?: {
+    name: string;
+    email: string;
+  };
 }
 
 export interface VehicleFilters {
-  ownerId?: string;
-  plate?: string;
+  search?: string;
   brand?: string;
-  model?: string;
-  category?: string;
-  professionalUse?: boolean;
+  year?: number;
+  plate?: string;
+  owner_id?: string;
 }
 
-export const fetchVehicles = async (filters?: VehicleFilters): Promise<Vehicle[]> => {
+export const fetchVehicles = async (filters?: VehicleFilters | string): Promise<Vehicle[]> => {
   try {
     let query = supabase
-      .from('vehicles')
-      .select('*');
+      .from("vehicles")
+      .select(`
+        *,
+        owner:profiles!vehicles_owner_id_fkey(name, email)
+      `);
     
-    // Apply filters if provided
-    if (filters) {
-      if (filters.ownerId) {
-        query = query.eq('owner_id', filters.ownerId);
+    // Handle the case where filters is a string (backward compatibility)
+    if (typeof filters === 'string') {
+      // If filters is a string, treat it as owner_id
+      query = query.eq('owner_id', filters);
+    } else if (filters) {
+      // Apply filters if they exist
+      if (filters.search) {
+        const searchTerm = `%${filters.search.toLowerCase()}%`;
+        query = query.or(`plate.ilike.${searchTerm},brand.ilike.${searchTerm},model.ilike.${searchTerm}`);
       }
-      if (filters.plate) {
-        query = query.ilike('plate', `%${filters.plate}%`);
-      }
+      
       if (filters.brand) {
         query = query.ilike('brand', `%${filters.brand}%`);
       }
-      if (filters.model) {
-        query = query.ilike('model', `%${filters.model}%`);
+      
+      if (filters.year) {
+        query = query.eq('year', filters.year);
       }
-      if (filters.category) {
-        query = query.eq('category', filters.category);
+      
+      if (filters.plate) {
+        query = query.ilike('plate', `%${filters.plate}%`);
       }
-      if (filters.professionalUse !== undefined) {
-        query = query.eq('professional_use', filters.professionalUse);
+      
+      if (filters.owner_id) {
+        query = query.eq('owner_id', filters.owner_id);
       }
     }
     
     const { data, error } = await query;
     
     if (error) {
-      console.error("Error fetching vehicles:", error);
-      return [];
+      throw error;
     }
     
-    return data as Vehicle[];
+    // Map the data to match our Vehicle interface with owner information
+    return data.map(vehicle => ({
+      ...vehicle,
+      owner: vehicle.owner ? {
+        name: vehicle.owner.name || "Unknown",
+        email: vehicle.owner.email || ""
+      } : undefined
+    })) as Vehicle[];
   } catch (error) {
-    console.error("Error in fetchVehicles:", error);
+    console.error("Error fetching vehicles:", error);
     return [];
   }
 };

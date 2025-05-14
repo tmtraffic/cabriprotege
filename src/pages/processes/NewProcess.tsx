@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -20,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import { fetchVehicles, Vehicle } from "@/services/VehicleService";
+import { fetchVehicles, Vehicle, VehicleFilters } from "@/services/VehicleService";
 import { fetchInfractions, Infraction } from "@/services/InfractionService";
 
 const processSchema = z.object({
@@ -58,7 +57,8 @@ const NewProcess = () => {
       
       try {
         setLoading(true);
-        const vehiclesData = await fetchVehicles(user.id);
+        // Update to pass a filters object instead of just user.id
+        const vehiclesData = await fetchVehicles({ owner_id: user.id });
         setVehicles(vehiclesData);
         
         // No vehicle selected yet, so don't load infractions

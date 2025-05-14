@@ -32,6 +32,19 @@ export interface SearchResultFine {
   points?: number;
   date?: string;
   status?: string;
+  // Additional properties required by the application
+  autoNumber?: string;
+  agency?: string;
+  plate?: string;
+  owner?: string;
+  respPoints?: string;
+  situation?: string;
+  infraction?: string;
+  location?: string;
+  frame?: string;
+  dueDate?: string;
+  discountValue?: number;
+  process?: string;
 }
 
 // CNH search result

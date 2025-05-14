@@ -1,36 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { SearchHistory, SearchResultDataJson, UfOption } from '@/models/SearchHistory';
-
-// Helper function to safely convert data to JSON-compatible format
-const toJsonSafe = (data: any): any => {
-  if (data === null || data === undefined) {
-    return null;
-  }
-  
-  if (typeof data === 'object') {
-    // Convert Date objects to strings
-    if (data instanceof Date) {
-      return data.toISOString();
-    }
-    
-    // Handle arrays
-    if (Array.isArray(data)) {
-      return data.map(toJsonSafe);
-    }
-    
-    // Handle plain objects
-    const result: Record<string, any> = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        result[key] = toJsonSafe(data[key]);
-      }
-    }
-    return result;
-  }
-  
-  return data;
-};
+import { toJsonSafe } from '@/lib/jsonUtils';
 
 export const SearchHistoryService = {
   /**
@@ -49,24 +20,23 @@ export const SearchHistoryService = {
         throw new Error("Usuário não autenticado");
       }
       
-      // Create a simplified result data object
-      const resultDataJson: SearchResultDataJson = {
-        success: resultData.success,
-        error: resultData.error
-      };
+      // Convert result data to JSON-safe format
+      const safeData = toJsonSafe(resultData.data);
       
-      // Safely convert complex data to JSON-safe format
-      if (resultData.data) {
-        resultDataJson.data = toJsonSafe(resultData.data);
-      }
-      
-      await supabase.from('search_history').insert({
+      // Create a JSON serializable object for the database
+      const dbRecord = {
         search_type: searchType,
         search_query: searchQuery,
         user_id: user.id,
-        result_data: resultDataJson,
+        result_data: {
+          success: resultData.success,
+          error: resultData.error,
+          data: safeData
+        },
         uf: uf
-      });
+      };
+      
+      await supabase.from('search_history').insert(dbRecord);
     } catch (error) {
       console.error("Erro ao salvar histórico de busca:", error);
     }
@@ -94,7 +64,30 @@ export const SearchHistoryService = {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data as SearchHistory[] || [];
+      
+      // Convert the raw database records to the expected SearchHistory type
+      const searchHistory: SearchHistory[] = data?.map((record): SearchHistory => {
+        // Ensure result_data has the required structure
+        const resultData: SearchResultDataJson = {
+          success: false, // Default value
+          ...record.result_data
+        };
+        
+        return {
+          id: record.id,
+          search_type: record.search_type,
+          search_query: record.search_query,
+          user_id: record.user_id,
+          result_data: resultData,
+          uf: record.uf,
+          related_client_id: record.related_client_id,
+          related_vehicle_id: record.related_vehicle_id,
+          created_at: record.created_at,
+          updated_at: record.updated_at
+        };
+      }) || [];
+      
+      return searchHistory;
     } catch (error) {
       console.error("Erro ao obter histórico de busca:", error);
       return [];

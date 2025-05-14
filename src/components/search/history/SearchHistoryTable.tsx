@@ -61,7 +61,7 @@ const SearchHistoryTable = ({
                     {success === undefined ? (
                       <Badge variant="outline">Desconhecido</Badge>
                     ) : success ? (
-                      <Badge variant="success">Sucesso</Badge>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">Sucesso</Badge>
                     ) : (
                       <Badge variant="destructive">Erro</Badge>
                     )}

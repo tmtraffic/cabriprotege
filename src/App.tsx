@@ -25,6 +25,7 @@ import VehicleDetail from "./pages/vehicles/VehicleDetail";
 import NewProcess from "./pages/processes/NewProcess";
 import NewClient from "./pages/clients/NewClient";
 import NewQuote from "./pages/crm/NewQuote";
+import ClientList from "./pages/clients/ClientList";
 
 import { lazy, Suspense } from "react";
 
@@ -56,10 +57,11 @@ const App = () => (
           
           <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
           
+          {/* Updated Client Routes */}
           <Route path="/clients" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
-                <ClientProfile />
+                <ClientList />
               </Suspense>
             </Layout>
           } />
@@ -67,7 +69,15 @@ const App = () => (
           <Route path="/clients/new" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
-                <ClientRegistration />
+                <NewClient />
+              </Suspense>
+            </Layout>
+          } />
+
+          <Route path="/clients/:id" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
               </Suspense>
             </Layout>
           } />
@@ -118,11 +128,10 @@ const App = () => (
             </Layout>
           } />
           
+          {/* Updated client routes in Portuguese */}
           <Route path="/clientes" element={
             <Layout userRole="admin">
-              <Suspense fallback={<PageLoader />}>
-                <ClientProfile />
-              </Suspense>
+              <ClientList />
             </Layout>
           } />
 
@@ -130,6 +139,15 @@ const App = () => (
           <Route path="/clientes/novo" element={
             <Layout userRole="admin">
               <NewClient />
+            </Layout>
+          } />
+          
+          {/* Add client detail route */}
+          <Route path="/clientes/:id" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
+              </Suspense>
             </Layout>
           } />
           

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -16,8 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { createClient } from "@/services/ClientService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from "lucide-react";
@@ -36,7 +36,6 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 const NewClient = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { user } = useSupabaseAuth();
   
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -51,32 +50,18 @@ const NewClient = () => {
   });
 
   const onSubmit = async (values: ClientFormValues) => {
-    if (!user) {
-      toast({
-        title: "Erro de autenticação",
-        description: "Você precisa estar logado para cadastrar um cliente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      // Store basic profile information
-      const { data, error } = await supabase
-        .from("profiles")
-        .insert({
-          name: values.name,
-          email: values.email,
-          phone: values.phone,
-          role: "client"
-        })
-        .select();
+      const { data, error } = await createClient({
+        name: values.name, 
+        email: values.email,
+        phone: values.phone || undefined,
+        cpf: values.cpf,
+        client_type: values.client_type,
+        notes: values.notes || undefined
+      });
 
       if (error) throw error;
-
-      // Add client-specific data like CPF and client_type to another table
-      // or implement a database migration to add these fields to the profiles table
       
       toast({
         title: "Cliente cadastrado com sucesso!",

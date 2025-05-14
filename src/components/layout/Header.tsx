@@ -82,7 +82,7 @@ const Header = ({
             {/* Quick links */}
             <div className="ml-6 hidden md:flex items-center space-x-1">
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
+                
               </Link>
               <Link to="/gateway">
                 

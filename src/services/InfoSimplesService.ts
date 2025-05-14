@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory, AdditionalSearchParams, UfOption } from '@/models/SearchHistory';
 import { toast } from '@/components/ui/use-toast';
@@ -32,13 +31,23 @@ const InfoSimplesService = {
         throw new Error(data.error || "Erro desconhecido na consulta");
       }
       
+      // Corrigido para evitar a recursão de tipos
       const result: SearchResultCNH = {
-        ...data.data,
+        name: data.data.name,
+        cnh: data.data.cnh,
+        category: data.data.category,
+        status: data.data.status,
+        expirationDate: data.data.expirationDate,
+        points: data.data.points,
+        fines: data.data.fines || [],
         uf: uf
       };
       
       // Salvar no histórico de busca
-      await this.saveSearchHistory('cnh', cnhNumber, result, uf);
+      await this.saveSearchHistory('cnh', cnhNumber, { 
+        success: true, 
+        data: result 
+      }, uf);
       
       return result;
     } catch (error) {
@@ -80,13 +89,22 @@ const InfoSimplesService = {
         throw new Error(data.error || "Erro desconhecido na consulta");
       }
       
+      // Corrigido para evitar a recursão de tipos
       const result: SearchResultVehicle = {
-        ...data.data,
+        plate: data.data.plate,
+        renavam: data.data.renavam,
+        model: data.data.model,
+        year: data.data.year,
+        owner: data.data.owner,
+        fines: data.data.fines || [],
         uf: uf
       };
       
       // Salvar no histórico de busca
-      await this.saveSearchHistory('vehicle', plate, result, uf);
+      await this.saveSearchHistory('vehicle', plate, {
+        success: true,
+        data: result
+      }, uf);
       
       return result;
     } catch (error) {

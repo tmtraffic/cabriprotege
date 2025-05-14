@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -287,7 +286,7 @@ const SearchHistoryComponent = () => {
                     <TableCell>{entry.search_query}</TableCell>
                     <TableCell>
                       {entry.result_data && entry.result_data.success ? (
-                        <Badge variant="success">Sucesso</Badge>
+                        <Badge variant="default">Sucesso</Badge>
                       ) : (
                         <Badge variant="destructive">Falha</Badge>
                       )}

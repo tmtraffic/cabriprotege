@@ -4,24 +4,36 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./components/layout/Layout";
 import Index from "./pages/Index";
+import Login from "./pages/auth/Login";
+import ClientDashboard from "./pages/dashboard/ClientDashboard";
+import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
+import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import NotFound from "./pages/NotFound";
+
 import BulkImportForm from "./components/import/BulkImportForm";
 import AdvancedSearch from "./components/search/AdvancedSearch";
+import LeadManagement from "./components/crm/LeadManagement";
+import InfractionConfig from "./components/admin/InfractionConfig";
+import WebhookConfig from "./components/integration/WebhookConfig";
 
-import {
-  adminRoutes,
-  authRoutes,
-  clientRoutes,
-  crmRoutes,
-  dashboardRoutes,
-  documentRoutes,
-  processRoutes,
-  settingsRoutes,
-  userRoutes,
-  vehicleRoutes,
-} from "./routes";
-import RouteWithLayout from "./routes/RouteWithLayout";
+import UserManagement from "./pages/users/UserManagement";
+
+import { lazy, Suspense } from "react";
+
+const ClientRegistration = lazy(() => import("./pages/clients/ClientRegistration"));
+const VehicleRegistration = lazy(() => import("./pages/vehicles/VehicleRegistration"));
+const ProcessManagement = lazy(() => import("./pages/processes/ProcessManagement"));
+const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
+const Settings = lazy(() => import("./pages/settings/Settings"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-cabricop-blue border-t-cabricop-orange rounded-full animate-spin"></div>
+    <span className="ml-2">Carregando...</span>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -32,35 +44,98 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route path="/" element={<Index />} />
           
-          {/* Authentication routes */}
-          {authRoutes}
+          <Route path="/auth/login" element={<Login />} />
           
-          {/* Main sections */}
-          {dashboardRoutes}
-          {clientRoutes}
-          {vehicleRoutes}
-          {processRoutes}
-          {crmRoutes}
-          {adminRoutes}
-          {documentRoutes}
-          {settingsRoutes}
-          {userRoutes}
+          <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
           
-          {/* Utility routes */}
-          <Route 
-            path="/import" 
-            element={<RouteWithLayout component={BulkImportForm} userRole="admin" />} 
-          />
+          <Route path="/clients" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
+              </Suspense>
+            </Layout>
+          } />
           
-          <Route 
-            path="/search" 
-            element={<RouteWithLayout component={AdvancedSearch} userRole="admin" />} 
-          />
+          <Route path="/clients/new" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientRegistration />
+              </Suspense>
+            </Layout>
+          } />
           
-          {/* 404 route */}
+          <Route path="/vehicles" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <VehicleRegistration />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/veiculos" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <VehicleRegistration />
+              </Suspense>
+            </Layout>
+          } />
+          
+          {/* Página unificada de processos */}
+          <Route path="/processos" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ProcessManagement />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/clientes" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/import" element={<Layout userRole="admin"><BulkImportForm /></Layout>} />
+          
+          <Route path="/search" element={<Layout userRole="admin"><AdvancedSearch /></Layout>} />
+          
+          <Route path="/crm" element={<Layout userRole="admin"><LeadManagement /></Layout>} />
+          
+          <Route path="/admin/infraction-config" element={<Layout userRole="admin"><InfractionConfig /></Layout>} />
+          
+          <Route path="/admin/webhook-config" element={<Layout userRole="admin"><WebhookConfig /></Layout>} />
+          
+          <Route path="/configuracoes" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/documentos" element={
+            <Layout userRole="admin">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">Documentos</h1>
+                <p className="text-muted-foreground">Gerencie os documentos relacionados aos processos e veículos.</p>
+              </div>
+            </Layout>
+          } />
+          
+          <Route path="/usuarios" element={
+            <Layout userRole="admin">
+              <UserManagement />
+            </Layout>
+          } />
+          
+          <Route path="/employee" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
+          
+          <Route path="/admin" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

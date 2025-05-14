@@ -1,60 +1,38 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, User, Car, Search, Shield, BarChart2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const { user, session, loading } = useSupabaseAuth();
 
   useEffect(() => {
-    // Use autenticação real com Supabase
+    // Simulação de verificação de autenticação
     const checkAuth = async () => {
-      // Aguarda o carregamento do estado de autenticação
-      if (loading) return;
+      // Em um sistema real, isso verificaria um token de autenticação
+      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
       
-      if (user && session) {
-        // Se o usuário está autenticado, verifica o papel dele
-        // Obtém o perfil do usuário para verificar o papel
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-            
-          if (error) {
-            throw error;
-          }
-          
-          const userRole = data?.role || 'client';
-          
-          if (userRole === 'admin') {
-            navigate("/admin");
-          } else if (userRole === 'employee') {
-            navigate("/employee");
-          } else {
-            navigate("/dashboard");
-          }
-        } catch (error) {
-          console.error("Erro ao obter perfil do usuário:", error);
-          toast({
-            title: "Erro de autenticação",
-            description: "Não foi possível verificar suas permissões. Tente novamente.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-        }
+      if (!isLoggedIn) {
+        navigate("/auth/login");
       } else {
-        // Usuário não está autenticado, continua na página inicial
-        setIsLoading(false);
+        // Set user role to admin by default
+        localStorage.setItem("userRole", "admin");
+        const userRole = localStorage.getItem("userRole") || "admin";
+        
+        if (userRole === "admin") {
+          navigate("/admin");
+        } else if (userRole === "employee") {
+          navigate("/employee");
+        } else {
+          navigate("/dashboard");
+        }
       }
+      
+      setIsLoading(false);
     };
 
     // Pequeno delay para simular verificação
@@ -63,9 +41,9 @@ const Index = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [navigate, user, session, loading]);
+  }, [navigate]);
 
-  if (isLoading || loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -77,7 +55,8 @@ const Index = () => {
     );
   }
 
-  // Página principal para usuários não autenticados
+  // Normalmente essa parte não seria renderizada devido ao redirecionamento,
+  // mas é bom ter como fallback
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

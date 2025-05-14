@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,34 +6,32 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Bell, User, Menu, Settings, LogOut, Activity } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+
 interface HeaderProps {
   toggleSidebar: () => void;
 }
+
 const Header = ({
   toggleSidebar
 }: HeaderProps) => {
   const [notifications, setNotifications] = useState(3);
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
-  const {
-    signOut,
-    user
-  } = useSupabaseAuth();
+  const { toast } = useToast();
+  const { signOut, user } = useSupabaseAuth();
+
   const handleLogout = async () => {
     try {
-      const {
-        error
-      } = await signOut();
+      const { error } = await signOut();
+      
       if (error) {
         throw error;
       }
+      
       toast({
         title: "Logout realizado",
-        description: "Você foi desconectado com sucesso"
+        description: "Você foi desconectado com sucesso",
       });
-
+      
       // Redirecionar para a página de login após logout
       navigate('/auth/login');
     } catch (error: any) {
@@ -40,28 +39,33 @@ const Header = ({
       toast({
         variant: "destructive",
         title: "Erro ao sair",
-        description: "Não foi possível concluir o logout. Tente novamente."
+        description: "Não foi possível concluir o logout. Tente novamente.",
       });
     }
   };
+
   const handleNavigateToProfile = () => {
     toast({
       title: "Perfil",
-      description: "Navegando para página de perfil do usuário"
+      description: "Navegando para página de perfil do usuário",
     });
     // Aqui seria implementada a navegação para o perfil
   };
+
   const handleNavigateToSettings = () => {
     navigate('/configuracoes');
   };
+
   const getUserInitials = () => {
     if (!user || !user.email) return 'U';
+    
     const parts = user.email.split('@')[0].split('.');
     if (parts.length > 1) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return parts[0][0].toUpperCase();
   };
+
   return <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
         <Button variant="ghost" size="icon" className="mr-2 md:hidden" onClick={toggleSidebar}>
@@ -82,10 +86,13 @@ const Header = ({
             {/* Quick links */}
             <div className="ml-6 hidden md:flex items-center space-x-1">
               <Link to="/dashboard">
-                
+                <Button variant="ghost" size="sm">Dashboard</Button>
               </Link>
               <Link to="/gateway">
-                
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  API Gateway
+                </Button>
               </Link>
             </div>
           </div>
@@ -171,4 +178,5 @@ const Header = ({
       </div>
     </header>;
 };
+
 export default Header;

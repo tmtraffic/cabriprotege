@@ -1,5 +1,1 @@
-
 project_id = "mkpvrydcuugrrzmopgto"
-
-[functions.infosimples-api]
-verify_jwt = true

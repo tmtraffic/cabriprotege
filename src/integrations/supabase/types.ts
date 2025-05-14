@@ -230,6 +230,57 @@ export type Database = {
         }
         Relationships: []
       }
+      search_history: {
+        Row: {
+          created_at: string
+          id: string
+          related_client_id: string | null
+          related_vehicle_id: string | null
+          result_data: Json | null
+          search_query: string
+          search_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          related_client_id?: string | null
+          related_vehicle_id?: string | null
+          result_data?: Json | null
+          search_query: string
+          search_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          related_client_id?: string | null
+          related_vehicle_id?: string | null
+          result_data?: Json | null
+          search_query?: string
+          search_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_history_related_client_id_fkey"
+            columns: ["related_client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_history_related_vehicle_id_fkey"
+            columns: ["related_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           brand: string

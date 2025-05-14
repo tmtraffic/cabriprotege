@@ -26,6 +26,7 @@ import NewProcess from "./pages/processes/NewProcess";
 import NewClient from "./pages/clients/NewClient";
 import NewQuote from "./pages/crm/NewQuote";
 import ClientList from "./pages/clients/ClientList";
+import VehicleList from "./pages/vehicles/VehicleList";
 
 import { lazy, Suspense } from "react";
 
@@ -82,19 +83,19 @@ const App = () => (
             </Layout>
           } />
           
+          {/* Updated Vehicle Routes */}
           <Route path="/vehicles" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
-                <VehicleRegistration />
+                <VehicleList />
               </Suspense>
             </Layout>
           } />
           
+          {/* Main Portuguese language vehicle routes */}
           <Route path="/veiculos" element={
             <Layout userRole="admin">
-              <Suspense fallback={<PageLoader />}>
-                <VehicleRegistration />
-              </Suspense>
+              <VehicleList />
             </Layout>
           } />
 

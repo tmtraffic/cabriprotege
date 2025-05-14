@@ -7,7 +7,7 @@ import { fetchVehicles, Vehicle } from "@/services/VehicleService";
 import { fetchProcesses, Process } from "@/services/ProcessService";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { InfractionStats } from "@/components/infractions/InfractionStats";
+import InfractionStats from "@/components/infractions/InfractionStats"; // Fixed import statement
 
 const ClientDashboard = () => {
   const [loading, setLoading] = useState(true);

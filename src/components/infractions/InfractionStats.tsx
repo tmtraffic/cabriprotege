@@ -6,7 +6,11 @@ import { fetchInfractions, Infraction } from '@/services/InfractionService';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { toast } from '@/components/ui/use-toast';
 
-const InfractionStats: React.FC = () => {
+interface InfractionStatsProps {
+  vehicles?: Array<any>;
+}
+
+const InfractionStats: React.FC<InfractionStatsProps> = ({ vehicles }) => {
   const [infractions, setInfractions] = useState<Infraction[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useSupabaseAuth();

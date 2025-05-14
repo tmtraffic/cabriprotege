@@ -74,7 +74,7 @@ export const SearchHistoryService = {
     relatedVehicleId?: string
   ): Promise<void> {
     try {
-      const updates: any = {};
+      const updates: Record<string, any> = {};
       
       if (relatedClientId) {
         updates.related_client_id = relatedClientId;

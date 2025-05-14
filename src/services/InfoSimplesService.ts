@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory, AdditionalSearchParams, UfOption } from '@/models/SearchHistory';
 import { toast } from '@/components/ui/use-toast';
 
+type SearchResultData = {
+  success: boolean;
+  data?: SearchResultCNH | SearchResultVehicle;
+  error?: string;
+};
+
 const InfoSimplesService = {
   // Função para pesquisar CNH
   async searchCNH(cnhNumber: string, uf: UfOption = 'SP', additionalParams: AdditionalSearchParams = {}): Promise<SearchResultCNH | null> {
@@ -123,7 +129,7 @@ const InfoSimplesService = {
   async saveSearchHistory(
     searchType: 'cnh' | 'vehicle',
     searchQuery: string,
-    resultData: { success: boolean; data?: any; error?: string },
+    resultData: SearchResultData,
     uf?: string
   ): Promise<void> {
     try {

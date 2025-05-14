@@ -2,8 +2,40 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SearchHistory, SearchResultDataJson, UfOption } from '@/models/SearchHistory';
 
+// Helper function to safely convert data to JSON-compatible format
+const toJsonSafe = (data: any): any => {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  
+  if (typeof data === 'object') {
+    // Convert Date objects to strings
+    if (data instanceof Date) {
+      return data.toISOString();
+    }
+    
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map(toJsonSafe);
+    }
+    
+    // Handle plain objects
+    const result: Record<string, any> = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        result[key] = toJsonSafe(data[key]);
+      }
+    }
+    return result;
+  }
+  
+  return data;
+};
+
 export const SearchHistoryService = {
-  // Função auxiliar para salvar histórico de busca
+  /**
+   * Saves search history record to the database
+   */
   async saveSearchHistory(
     searchType: 'cnh' | 'vehicle',
     searchQuery: string,
@@ -17,15 +49,15 @@ export const SearchHistoryService = {
         throw new Error("Usuário não autenticado");
       }
       
-      // Convert to a JSON-safe format before saving to Supabase
+      // Create a simplified result data object
       const resultDataJson: SearchResultDataJson = {
         success: resultData.success,
         error: resultData.error
       };
       
-      // Convert complex objects to plain objects if they exist
+      // Safely convert complex data to JSON-safe format
       if (resultData.data) {
-        resultDataJson.data = JSON.parse(JSON.stringify(resultData.data));
+        resultDataJson.data = toJsonSafe(resultData.data);
       }
       
       await supabase.from('search_history').insert({
@@ -40,7 +72,9 @@ export const SearchHistoryService = {
     }
   },
   
-  // Função para obter histórico de busca
+  /**
+   * Retrieves search history with optional filtering
+   */
   async getSearchHistory(filters: { searchType?: 'cnh' | 'vehicle', uf?: string } = {}): Promise<SearchHistory[]> {
     try {
       let query = supabase
@@ -48,7 +82,7 @@ export const SearchHistoryService = {
         .select('*')
         .order('created_at', { ascending: false });
       
-      // Aplicar filtros se fornecidos
+      // Apply filters if provided
       if (filters.searchType) {
         query = query.eq('search_type', filters.searchType);
       }
@@ -67,7 +101,9 @@ export const SearchHistoryService = {
     }
   },
   
-  // Função para atualizar histórico de busca com cliente ou veículo relacionado
+  /**
+   * Updates search history with related client or vehicle ID
+   */
   async updateSearchHistory(
     searchId: string,
     relatedClientId?: string,
@@ -93,7 +129,9 @@ export const SearchHistoryService = {
     }
   },
   
-  // Função para exportar histórico de busca em CSV
+  /**
+   * Exports search history to CSV format
+   */
   async exportSearchHistory(filters: { searchType?: 'cnh' | 'vehicle', uf?: string } = {}): Promise<string> {
     try {
       const history = await this.getSearchHistory(filters);
@@ -102,8 +140,10 @@ export const SearchHistoryService = {
         throw new Error("Nenhum registro encontrado para exportar");
       }
       
+      // Define CSV header
       let csv = "ID,Tipo,Consulta,UF,Data,Cliente,Veículo\n";
       
+      // Create CSV rows
       history.forEach(item => {
         const row = [
           item.id,

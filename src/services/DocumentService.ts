@@ -41,7 +41,12 @@ export const DocumentService = {
       throw error;
     }
     
-    return data || [];
+    // Validate each document to ensure entity_type is one of the allowed values
+    const validDocuments = (data || []).filter(doc => 
+      ['client', 'vehicle', 'process'].includes(doc.entity_type)
+    ) as Document[];
+    
+    return validDocuments;
   },
 
   // Get all documents (for admin interface)
@@ -56,7 +61,12 @@ export const DocumentService = {
       throw error;
     }
     
-    return data || [];
+    // Validate each document to ensure entity_type is one of the allowed values
+    const validDocuments = (data || []).filter(doc => 
+      ['client', 'vehicle', 'process'].includes(doc.entity_type)
+    ) as Document[];
+    
+    return validDocuments;
   },
 
   // Create a document record
@@ -72,7 +82,12 @@ export const DocumentService = {
       throw error;
     }
     
-    return data;
+    // Validate the document to ensure entity_type is one of the allowed values
+    if (!['client', 'vehicle', 'process'].includes(data.entity_type)) {
+      throw new Error(`Invalid entity_type: ${data.entity_type}`);
+    }
+    
+    return data as Document;
   },
 
   // Update a document
@@ -89,7 +104,12 @@ export const DocumentService = {
       throw error;
     }
     
-    return data;
+    // Validate the document to ensure entity_type is one of the allowed values
+    if (!['client', 'vehicle', 'process'].includes(data.entity_type)) {
+      throw new Error(`Invalid entity_type: ${data.entity_type}`);
+    }
+    
+    return data as Document;
   },
 
   // Delete a document

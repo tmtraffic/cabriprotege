@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -21,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Save } from "lucide-react";
+import { User } from "lucide-react";
 
 const clientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -63,23 +62,22 @@ const NewClient = () => {
 
     setIsSubmitting(true);
     try {
+      // Store basic profile information
       const { data, error } = await supabase
         .from("profiles")
         .insert({
           name: values.name,
           email: values.email,
           phone: values.phone,
-          role: "client",
-          meta: {
-            cpf: values.cpf,
-            client_type: values.client_type,
-            notes: values.notes,
-          }
+          role: "client"
         })
         .select();
 
       if (error) throw error;
 
+      // Add client-specific data like CPF and client_type to another table
+      // or implement a database migration to add these fields to the profiles table
+      
       toast({
         title: "Cliente cadastrado com sucesso!",
         description: `${values.name} foi adicionado como cliente.`,

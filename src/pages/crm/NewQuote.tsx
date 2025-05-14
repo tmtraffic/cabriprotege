@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -21,7 +21,7 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -48,7 +48,7 @@ const NewQuote = () => {
   const navigate = useNavigate();
   const { user } = useSupabaseAuth();
   
-  useState(() => {
+  useEffect(() => {
     // Fetch clients for the dropdown
     const fetchClients = async () => {
       try {
@@ -97,27 +97,28 @@ const NewQuote = () => {
 
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("quotes")
-        .insert({
-          title: values.title,
-          client_id: values.client_id,
-          creator_id: user.id,
-          amount: values.amount,
-          expiration_date: values.expiration_date.toISOString(),
-          status: values.status,
-          service_type: values.service_type,
-          description: values.description,
-        })
-        .select();
-
-      if (error) throw error;
-
+      // Since we don't have a quotes table yet, we would ideally create this table first
+      // For now, let's simulate saving the quote by showing a toast message
       toast({
-        title: "Orçamento cadastrado com sucesso!",
-        description: `O orçamento "${values.title}" foi criado.`,
+        title: "Funcionalidade em desenvolvimento",
+        description: "O módulo de orçamentos está sendo implementado. A tabela 'quotes' precisa ser criada no banco de dados.",
       });
       
+      // We would normally do this:
+      // const { data, error } = await supabase
+      //   .from("quotes")
+      //   .insert({
+      //     title: values.title,
+      //     client_id: values.client_id,
+      //     creator_id: user.id,
+      //     amount: values.amount,
+      //     expiration_date: values.expiration_date.toISOString(),
+      //     status: values.status,
+      //     service_type: values.service_type,
+      //     description: values.description,
+      //   })
+      //   .select();
+
       navigate("/crm");
     } catch (error: any) {
       console.error("Erro ao cadastrar orçamento:", error);

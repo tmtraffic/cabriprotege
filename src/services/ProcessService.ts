@@ -34,34 +34,46 @@ export const fetchProcesses = async (userId: string): Promise<Process[]> => {
       .from("processes")
       .select(`
         *,
-        infraction:infractions(*),
-        client:profiles!client_id(*),
-        assignee:profiles!assigned_to(*)
+        infraction:infractions(
+          *,
+          vehicle:vehicles(plate)
+        ),
+        client:profiles!client_id(name, email),
+        assignee:profiles!assigned_to(name)
       `)
       .eq("client_id", userId);
 
     if (error) throw error;
 
     // Transform the data to match our Process interface
-    const processData = data.map(process => ({
-      id: process.id,
-      infraction_id: process.infraction_id,
-      client_id: process.client_id,
-      assigned_to: process.assigned_to,
-      type: process.type,
-      status: process.status,
-      description: process.description,
-      created_at: process.created_at,
-      updated_at: process.updated_at,
-      infraction: process.infraction,
-      client: {
-        name: process.client?.name || "Unknown",
-        email: process.client?.email || ""
-      },
-      assignee: process.assignee ? {
-        name: process.assignee?.name || "Unassigned"
-      } : undefined
-    }));
+    const processData = data.map(process => {
+      return {
+        id: process.id,
+        infraction_id: process.infraction_id,
+        client_id: process.client_id,
+        assigned_to: process.assigned_to,
+        type: process.type,
+        status: process.status,
+        description: process.description,
+        created_at: process.created_at,
+        updated_at: process.updated_at,
+        infraction: process.infraction ? {
+          auto_number: process.infraction.auto_number,
+          description: process.infraction.description,
+          value: process.infraction.value,
+          vehicle: {
+            plate: process.infraction.vehicle?.plate || "Unknown"
+          }
+        } : undefined,
+        client: {
+          name: process.client?.name || "Unknown",
+          email: process.client?.email || ""
+        },
+        assignee: process.assignee ? {
+          name: process.assignee.name || "Unassigned"
+        } : undefined
+      };
+    });
 
     return processData as Process[];
   } catch (error) {
@@ -76,9 +88,12 @@ export const fetchProcessById = async (processId: string): Promise<Process | nul
       .from("processes")
       .select(`
         *,
-        infraction:infractions(*),
-        client:profiles!client_id(*),
-        assignee:profiles!assigned_to(*)
+        infraction:infractions(
+          *,
+          vehicle:vehicles(plate)
+        ),
+        client:profiles!client_id(name, email),
+        assignee:profiles!assigned_to(name)
       `)
       .eq("id", processId)
       .single();
@@ -96,13 +111,20 @@ export const fetchProcessById = async (processId: string): Promise<Process | nul
       description: data.description,
       created_at: data.created_at,
       updated_at: data.updated_at,
-      infraction: data.infraction,
+      infraction: data.infraction ? {
+        auto_number: data.infraction.auto_number,
+        description: data.infraction.description,
+        value: data.infraction.value,
+        vehicle: {
+          plate: data.infraction.vehicle?.plate || "Unknown"
+        }
+      } : undefined,
       client: {
         name: data.client?.name || "Unknown",
         email: data.client?.email || ""
       },
       assignee: data.assignee ? {
-        name: data.assignee?.name || "Unassigned"
+        name: data.assignee.name || "Unassigned"
       } : undefined
     };
 
@@ -119,19 +141,19 @@ export const fetchProcessesByStatus = async (status: string, userId?: string): P
       .from('processes')
       .select(`
         *,
-        infraction:infraction_id (
+        infraction:infractions (
           auto_number,
           description,
           value,
-          vehicle:vehicle_id (
+          vehicle:vehicles (
             plate
           )
         ),
-        client:client_id (
+        client:profiles!client_id (
           name,
           email
         ),
-        assignee:assigned_to (
+        assignee:profiles!assigned_to (
           name
         )
       `)
@@ -173,7 +195,7 @@ export const fetchProcessesByStatus = async (status: string, userId?: string): P
         email: process.client?.email || ""
       },
       assignee: process.assignee ? {
-        name: process.assignee.name || "Unassigned"
+        name: process.assignee?.name || "Unassigned"
       } : undefined
     }));
     

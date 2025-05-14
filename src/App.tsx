@@ -19,9 +19,6 @@ import InfractionConfig from "./components/admin/InfractionConfig";
 import WebhookConfig from "./components/integration/WebhookConfig";
 
 import UserManagement from "./pages/users/UserManagement";
-import DatabaseManagement from "./pages/database/DatabaseManagement";
-import GatewayDashboard from "./pages/gateway/GatewayDashboard";
-import InfractionService from "./pages/infractions/InfractionService"; // Importar o novo serviço
 
 import { lazy, Suspense } from "react";
 
@@ -30,7 +27,6 @@ const VehicleRegistration = lazy(() => import("./pages/vehicles/VehicleRegistrat
 const ProcessManagement = lazy(() => import("./pages/processes/ProcessManagement"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
-const Reports = lazy(() => import("./pages/reports/Reports"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -53,10 +49,6 @@ const App = () => (
           <Route path="/auth/login" element={<Login />} />
           
           <Route path="/dashboard" element={<Layout userRole="admin"><ClientDashboard /></Layout>} />
-          
-          {/* Rotas para os microserviços */}
-          <Route path="/gateway" element={<Layout userRole="admin"><GatewayDashboard /></Layout>} />
-          <Route path="/infractions" element={<Layout userRole="admin"><InfractionService /></Layout>} />
           
           <Route path="/clients" element={
             <Layout userRole="admin">
@@ -117,14 +109,6 @@ const App = () => (
           
           <Route path="/admin/webhook-config" element={<Layout userRole="admin"><WebhookConfig /></Layout>} />
           
-          <Route path="/relatorios" element={
-            <Layout userRole="admin">
-              <Suspense fallback={<PageLoader />}>
-                <Reports />
-              </Suspense>
-            </Layout>
-          } />
-          
           <Route path="/configuracoes" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
@@ -142,32 +126,9 @@ const App = () => (
             </Layout>
           } />
           
-          <Route path="/notificacoes" element={
-            <Layout userRole="admin">
-              <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">Notificações</h1>
-                <p className="text-muted-foreground">Veja as notificações e alertas do sistema.</p>
-              </div>
-            </Layout>
-          } />
-          
-          <Route path="/agenda" element={
-            <Layout userRole="admin">
-              <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">Agenda</h1>
-                <p className="text-muted-foreground">Gerencie compromissos e prazos importantes.</p>
-              </div>
-            </Layout>
-          } />
-          
           <Route path="/usuarios" element={
             <Layout userRole="admin">
               <UserManagement />
-            </Layout>
-          } />
-          <Route path="/dados" element={
-            <Layout userRole="admin">
-              <DatabaseManagement />
             </Layout>
           } />
           

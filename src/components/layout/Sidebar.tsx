@@ -6,11 +6,10 @@ import { cn } from "@/lib/utils";
 // Import components
 import SidebarUser from "./sidebar/SidebarUser";
 import MenuSection from "./sidebar/MenuSection";
-import MicroservicesSection from "./sidebar/MicroservicesSection";
 import SupportLink from "./sidebar/SupportLink";
 
 // Import menu configurations
-import { getRoleMenuItems, microservicesItems } from "./sidebar/menuConfigs";
+import { getRoleMenuItems } from "./sidebar/menuConfigs";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -42,14 +41,6 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
           <nav className="space-y-1">
             {/* Dashboard Section */}
             <MenuSection items={menuItems} currentPath={location.pathname} />
-
-            {/* Microservices Section - Only for admin */}
-            {userRole === "admin" && (
-              <MicroservicesSection 
-                items={microservicesItems} 
-                currentPath={location.pathname} 
-              />
-            )}
           </nav>
         </div>
 

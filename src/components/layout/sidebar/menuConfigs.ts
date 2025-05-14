@@ -13,8 +13,6 @@ import {
   UserCheck,
   Import,
   MessageSquare,
-  ListTree,
-  AlertTriangle,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -50,30 +48,6 @@ export const clientMenuItems: MenuItem[] = [
     icon: FileText,
     href: "/documentos",
   },
-  {
-    title: "Notificações",
-    icon: Bell,
-    href: "/notificacoes",
-  },
-  {
-    title: "Agenda",
-    icon: Calendar,
-    href: "/agenda",
-  },
-];
-
-// Microservices items
-export const microservicesItems: MenuItem[] = [
-  {
-    title: "API Gateway",
-    icon: ListTree,
-    href: "/gateway",
-  },
-  {
-    title: "Serviço de Infrações",
-    icon: AlertTriangle,
-    href: "/infractions",
-  },
 ];
 
 // Employee-specific menu items
@@ -97,16 +71,6 @@ export const employeeMenuItems: MenuItem[] = [
     title: "Documentos",
     icon: FileText,
     href: "/documentos",
-  },
-  {
-    title: "Notificações",
-    icon: Bell,
-    href: "/notificacoes",
-  },
-  {
-    title: "Agenda",
-    icon: Calendar,
-    href: "/agenda",
   },
   {
     title: "Consulta Avançada",
@@ -134,19 +98,9 @@ export const adminMenuItems: MenuItem[] = [
     href: "/usuarios",
   },
   {
-    title: "Relatórios",
-    icon: BarChart2,
-    href: "/relatorios",
-  },
-  {
     title: "Configurações",
     icon: Settings,
     href: "/configuracoes",
-  },
-  {
-    title: "Base de Dados",
-    icon: Database,
-    href: "/dados",
   },
 ];
 

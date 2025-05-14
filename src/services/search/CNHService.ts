@@ -32,7 +32,7 @@ export const CNHService = {
         throw new Error(data.error || "Erro desconhecido na consulta");
       }
       
-      // Corrigido para evitar a recursão de tipos
+      // Criar o resultado
       const result: SearchResultCNH = {
         name: data.data.name,
         cnh: data.data.cnh,
@@ -44,10 +44,18 @@ export const CNHService = {
         uf: uf
       };
       
-      // Salvar no histórico de busca
+      // Salvar no histórico de busca com resultados simplificados para evitar problemas de serialização
       await SearchHistoryService.saveSearchHistory('cnh', cnhNumber, { 
         success: true, 
-        data: result 
+        data: {
+          name: result.name,
+          cnh: result.cnh,
+          category: result.category,
+          status: result.status,
+          expirationDate: result.expirationDate,
+          points: result.points,
+          finesCount: (result.fines || []).length
+        }
       }, uf);
       
       return result;

@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SearchHistory } from '@/models/SearchHistory';
+import { SearchHistory, SearchResultDataJson, UfOption } from '@/models/SearchHistory';
 
 export const SearchHistoryService = {
   // Função auxiliar para salvar histórico de busca
@@ -18,12 +18,12 @@ export const SearchHistoryService = {
       }
       
       // Convert to a JSON-safe format before saving to Supabase
-      const resultDataJson = {
+      const resultDataJson: SearchResultDataJson = {
         success: resultData.success,
         error: resultData.error
-      } as Record<string, any>;
+      };
       
-      // Convert complex objects to plain objects
+      // Convert complex objects to plain objects if they exist
       if (resultData.data) {
         resultDataJson.data = JSON.parse(JSON.stringify(resultData.data));
       }

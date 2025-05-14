@@ -32,7 +32,7 @@ export const VehicleService = {
         throw new Error(data.error || "Erro desconhecido na consulta");
       }
       
-      // Corrigido para evitar a recursão de tipos
+      // Criar o resultado
       const result: SearchResultVehicle = {
         plate: data.data.plate,
         renavam: data.data.renavam,
@@ -43,10 +43,17 @@ export const VehicleService = {
         uf: uf
       };
       
-      // Salvar no histórico de busca
+      // Salvar no histórico de busca com resultados simplificados para evitar problemas de serialização
       await SearchHistoryService.saveSearchHistory('vehicle', plate, {
         success: true,
-        data: result
+        data: {
+          plate: result.plate,
+          renavam: result.renavam,
+          model: result.model,
+          year: result.year,
+          owner: result.owner,
+          finesCount: (result.fines || []).length
+        }
       }, uf);
       
       return result;

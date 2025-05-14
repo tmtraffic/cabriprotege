@@ -4,12 +4,12 @@ export interface SearchHistory {
   search_type: 'cnh' | 'vehicle';
   search_query: string;
   user_id: string;
-  result_data: any;
+  result_data: Json;
   created_at: string;
   updated_at: string;
   related_client_id?: string;
   related_vehicle_id?: string;
-  uf?: string; // Adicionado UF para controle de estados nas consultas
+  uf?: string;
 }
 
 export interface SearchResultCNH {
@@ -63,11 +63,19 @@ export interface AdditionalSearchParams {
 
 export type UfOption = 'SP' | 'RJ' | 'MG' | 'PR' | 'RS' | 'SC' | 'BA' | 'ES' | 'GO' | 'PE' | 'DF';
 
-// Define a type for search result data that can be safely serialized to JSON
-// Making it compatible with Supabase's Json type by using Record<string, any>
+// Define a safe type for search result data that can be serialized to JSON
+export type Json = 
+  | string 
+  | number 
+  | boolean 
+  | null 
+  | { [key: string]: Json } 
+  | Json[];
+
+// Search result data compatible with Supabase's Json type
 export interface SearchResultDataJson {
   success: boolean;
-  data?: Record<string, any>; // Using Record<string, any> to make it compatible with Json type
   error?: string;
-  [key: string]: any; // Add index signature to make it compatible with Json type
+  data?: Record<string, any>;
+  [key: string]: any;
 }

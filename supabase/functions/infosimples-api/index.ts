@@ -18,6 +18,11 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
+// Tratamento de requisições OPTIONS para CORS
+function handleOptionsRequest() {
+  return new Response(null, { headers: corsHeaders });
+}
+
 // Função para realizar chamadas à API com retry
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MAX_RETRIES) {
   let lastError;
@@ -79,104 +84,168 @@ function handleInfosimplesError(code: number, message: string) {
   }
 }
 
+// Validação de parâmetros
+function validateRequestParams(searchType: string, searchQuery: string) {
+  if (!searchType || !searchQuery) {
+    throw new Error("Parâmetros de busca incompletos");
+  }
+  
+  if (!INFOSIMPLES_API_TOKEN || !INFOSIMPLES_USER_ID) {
+    throw new Error("Credenciais da API InfoSimples não configuradas");
+  }
+}
+
+// Configurar parâmetros para consulta de CNH
+function configureCNHParams(searchQuery: string, uf: string, additionalParams: Record<string, any>) {
+  let params: Record<string, any> = {};
+  
+  switch (uf) {
+    case "SP":
+      params = {
+        numero_registro: searchQuery,
+        data_nascimento: additionalParams.dataNascimento || "",
+      };
+      break;
+    case "PR":
+      params = {
+        cpf: additionalParams.cpf || "",
+        numero_registro: searchQuery,
+      };
+      break;
+    case "MG":
+      params = {
+        cpf: additionalParams.cpf || "",
+        data_nascimento: additionalParams.dataNascimento || "",
+        data_primeira_habilitacao: additionalParams.dataPrimeiraHabilitacao || "",
+      };
+      break;
+    default:
+      // Para outros estados, usamos os parâmetros padrão
+      params = {
+        numero_registro: searchQuery,
+        ...additionalParams
+      };
+  }
+  
+  return params;
+}
+
+// Configurar parâmetros para consulta de veículo
+function configureVehicleParams(searchQuery: string, uf: string, additionalParams: Record<string, any>) {
+  let params: Record<string, any> = {};
+  
+  switch (uf) {
+    case "SP":
+      params = {
+        placa: searchQuery,
+        renavam: additionalParams.renavam || "",
+      };
+      break;
+    case "RJ":
+      params = {
+        placa: searchQuery,
+        renavam: additionalParams.renavam || "",
+        chassi: additionalParams.chassi || "",
+      };
+      break;
+    default:
+      // Para outros estados, usamos os parâmetros padrão
+      params = {
+        placa: searchQuery,
+        renavam: additionalParams.renavam || "",
+        ...additionalParams
+      };
+  }
+  
+  return params;
+}
+
+// Configurar parâmetros para chamada à API
+function configureRequestParams(
+  searchType: string,
+  searchQuery: string,
+  uf: string,
+  additionalParams: Record<string, any> = {}
+) {
+  // Determinar o endpoint com base no tipo de busca e UF (padrão SP se não informado)
+  const stateUf = uf || "SP";
+  let endpoint = "";
+  let params: Record<string, any> = {};
+  
+  if (searchType === 'cnh') {
+    endpoint = `/detran/${stateUf}/cnh`;
+    params = configureCNHParams(searchQuery, stateUf, additionalParams);
+  } else if (searchType === 'vehicle') {
+    endpoint = `/detran/${stateUf}/veiculo`;
+    params = configureVehicleParams(searchQuery, stateUf, additionalParams);
+  } else {
+    throw new Error("Tipo de busca inválido");
+  }
+  
+  // Adicionar parâmetros de autenticação
+  params.api_key = INFOSIMPLES_API_TOKEN;
+  params.user_id = INFOSIMPLES_USER_ID;
+  
+  return { endpoint, params };
+}
+
+// Normaliza os dados da resposta da API
+function normalizeResponseData(searchType: string, searchQuery: string, responseData: any) {
+  if (searchType === 'cnh') {
+    return {
+      success: true,
+      data: {
+        name: responseData.data?.nome || responseData.data?.name || "Nome não disponível",
+        cnh: searchQuery,
+        category: responseData.data?.categoria || responseData.data?.category || "Não informada",
+        status: responseData.data?.situacao || responseData.data?.status || "Regular",
+        expirationDate: responseData.data?.validade || responseData.data?.expiration_date || "Não informada",
+        points: responseData.data?.pontuacao || responseData.data?.points || 0,
+        fines: responseData.data?.multas || responseData.data?.fines || []
+      }
+    };
+  } else if (searchType === 'vehicle') {
+    return {
+      success: true,
+      data: {
+        plate: searchQuery,
+        renavam: responseData.data?.renavam || "Não disponível",
+        model: responseData.data?.modelo || responseData.data?.model || "Não disponível",
+        year: responseData.data?.ano || responseData.data?.year || "Não disponível",
+        owner: responseData.data?.proprietario || responseData.data?.owner || "Não disponível",
+        fines: responseData.data?.multas || responseData.data?.fines || []
+      }
+    };
+  } else {
+    return {
+      success: true,
+      data: responseData.data
+    };
+  }
+}
+
 // Função principal de processamento de requisições
 serve(async (req: Request) => {
   // Lidar com requisições CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
+    return handleOptionsRequest();
   }
 
   try {
-    // Verificar se as credenciais da API foram configuradas
-    if (!INFOSIMPLES_API_TOKEN || !INFOSIMPLES_USER_ID) {
-      throw new Error("Credenciais da API InfoSimples não configuradas");
-    }
-
     const { searchType, searchQuery, uf, additionalParams = {} } = await req.json();
     
     // Validar parâmetros obrigatórios
-    if (!searchType || !searchQuery) {
-      throw new Error("Parâmetros de busca incompletos");
-    }
+    validateRequestParams(searchType, searchQuery);
     
-    // Determinar o endpoint com base no tipo de busca e UF (padrão SP se não informado)
-    const stateUf = uf || "SP";
-    let endpoint = "";
-    let params: Record<string, any> = {};
-    
-    if (searchType === 'cnh') {
-      endpoint = `/detran/${stateUf}/cnh`;
-      
-      // Parâmetros específicos por UF
-      switch (stateUf) {
-        case "SP":
-          params = {
-            numero_registro: searchQuery,
-            data_nascimento: additionalParams.dataNascimento || "",
-          };
-          break;
-        case "PR":
-          params = {
-            cpf: additionalParams.cpf || "",
-            numero_registro: searchQuery,
-          };
-          break;
-        case "MG":
-          params = {
-            cpf: additionalParams.cpf || "",
-            data_nascimento: additionalParams.dataNascimento || "",
-            data_primeira_habilitacao: additionalParams.dataPrimeiraHabilitacao || "",
-          };
-          break;
-        default:
-          // Para outros estados, usamos os parâmetros padrão
-          params = {
-            numero_registro: searchQuery,
-            ...additionalParams
-          };
-      }
-    } else if (searchType === 'vehicle') {
-      endpoint = `/detran/${stateUf}/veiculo`;
-      
-      // Parâmetros específicos por UF
-      switch (stateUf) {
-        case "SP":
-          params = {
-            placa: searchQuery,
-            renavam: additionalParams.renavam || "",
-          };
-          break;
-        case "RJ":
-          params = {
-            placa: searchQuery,
-            renavam: additionalParams.renavam || "",
-            chassi: additionalParams.chassi || "",
-          };
-          break;
-        default:
-          // Para outros estados, usamos os parâmetros padrão
-          params = {
-            placa: searchQuery,
-            renavam: additionalParams.renavam || "",
-            ...additionalParams
-          };
-      }
-    } else {
-      throw new Error("Tipo de busca inválido");
-    }
+    // Configurar parâmetros para chamada à API
+    const { endpoint, params } = configureRequestParams(searchType, searchQuery, uf, additionalParams);
     
     console.log(`Iniciando consulta à API InfoSimples: ${endpoint}`, params);
     
     // Montar URL completo
     const apiUrl = `${API_BASE_URL}${endpoint}`;
     
-    // Adicionar parâmetros de autenticação
-    params.api_key = INFOSIMPLES_API_TOKEN;
-    params.user_id = INFOSIMPLES_USER_ID;
-    
-    // Converter parâmetros para formato esperado pela API
+    // Realizar chamada à API
     const response = await fetchWithRetry(
       apiUrl, 
       {
@@ -198,40 +267,7 @@ serve(async (req: Request) => {
     }
     
     // Processar e normalizar a resposta
-    let normalizedData;
-    if (searchType === 'cnh') {
-      // Normalizar dados da CNH (depende do formato da resposta real)
-      normalizedData = {
-        success: true,
-        data: {
-          name: responseData.data?.nome || responseData.data?.name || "Nome não disponível",
-          cnh: searchQuery,
-          category: responseData.data?.categoria || responseData.data?.category || "Não informada",
-          status: responseData.data?.situacao || responseData.data?.status || "Regular",
-          expirationDate: responseData.data?.validade || responseData.data?.expiration_date || "Não informada",
-          points: responseData.data?.pontuacao || responseData.data?.points || 0,
-          fines: responseData.data?.multas || responseData.data?.fines || []
-        }
-      };
-    } else if (searchType === 'vehicle') {
-      // Normalizar dados do veículo (depende do formato da resposta real)
-      normalizedData = {
-        success: true,
-        data: {
-          plate: searchQuery,
-          renavam: responseData.data?.renavam || "Não disponível",
-          model: responseData.data?.modelo || responseData.data?.model || "Não disponível",
-          year: responseData.data?.ano || responseData.data?.year || "Não disponível",
-          owner: responseData.data?.proprietario || responseData.data?.owner || "Não disponível",
-          fines: responseData.data?.multas || responseData.data?.fines || []
-        }
-      };
-    } else {
-      normalizedData = {
-        success: true,
-        data: responseData.data
-      };
-    }
+    const normalizedData = normalizeResponseData(searchType, searchQuery, responseData);
 
     return new Response(JSON.stringify(normalizedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

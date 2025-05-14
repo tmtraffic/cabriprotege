@@ -19,9 +19,12 @@ import InfractionConfig from "./components/admin/InfractionConfig";
 import WebhookConfig from "./components/integration/WebhookConfig";
 
 import UserManagement from "./pages/users/UserManagement";
+import NewUser from "./pages/users/NewUser";
 import NewVehicle from "./pages/vehicles/NewVehicle";
 import VehicleDetail from "./pages/vehicles/VehicleDetail";
 import NewProcess from "./pages/processes/NewProcess";
+import NewClient from "./pages/clients/NewClient";
+import NewQuote from "./pages/crm/NewQuote";
 
 import { lazy, Suspense } from "react";
 
@@ -122,12 +125,26 @@ const App = () => (
               </Suspense>
             </Layout>
           } />
+
+          {/* Add new client route */}
+          <Route path="/clientes/novo" element={
+            <Layout userRole="admin">
+              <NewClient />
+            </Layout>
+          } />
           
           <Route path="/import" element={<Layout userRole="admin"><BulkImportForm /></Layout>} />
           
           <Route path="/search" element={<Layout userRole="admin"><AdvancedSearch /></Layout>} />
           
           <Route path="/crm" element={<Layout userRole="admin"><LeadManagement /></Layout>} />
+
+          {/* Add new quote route */}
+          <Route path="/crm/orcamento/novo" element={
+            <Layout userRole="admin">
+              <NewQuote />
+            </Layout>
+          } />
           
           <Route path="/admin/infraction-config" element={<Layout userRole="admin"><InfractionConfig /></Layout>} />
           
@@ -153,6 +170,13 @@ const App = () => (
           <Route path="/usuarios" element={
             <Layout userRole="admin">
               <UserManagement />
+            </Layout>
+          } />
+
+          {/* Add new user route */}
+          <Route path="/usuarios/novo" element={
+            <Layout userRole="admin">
+              <NewUser />
             </Layout>
           } />
           

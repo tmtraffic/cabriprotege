@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Process {
@@ -41,9 +42,12 @@ export const fetchProcesses = async (userId: string): Promise<Process[]> => {
 
     if (error) throw error;
 
-    // Cast data to any first then transform to required type
-    const processData = (data as any[]).map(process => ({
+    // Transform the data to match our Process interface
+    const processData = data.map(process => ({
       id: process.id,
+      infraction_id: process.infraction_id,
+      client_id: process.client_id,
+      assigned_to: process.assigned_to,
       type: process.type,
       status: process.status,
       description: process.description,
@@ -55,8 +59,7 @@ export const fetchProcesses = async (userId: string): Promise<Process[]> => {
         email: process.client?.email || ""
       },
       assignee: process.assignee ? {
-        name: process.assignee?.name || "Unassigned",
-        email: process.assignee?.email || ""
+        name: process.assignee?.name || "Unassigned"
       } : undefined
     }));
 
@@ -85,6 +88,9 @@ export const fetchProcessById = async (processId: string): Promise<Process | nul
     // Transform to required type
     const process = {
       id: data.id,
+      infraction_id: data.infraction_id,
+      client_id: data.client_id,
+      assigned_to: data.assigned_to,
       type: data.type,
       status: data.status,
       description: data.description,
@@ -96,8 +102,7 @@ export const fetchProcessById = async (processId: string): Promise<Process | nul
         email: data.client?.email || ""
       },
       assignee: data.assignee ? {
-        name: data.assignee?.name || "Unassigned",
-        email: data.assignee?.email || ""
+        name: data.assignee?.name || "Unassigned"
       } : undefined
     };
 
@@ -144,7 +149,35 @@ export const fetchProcessesByStatus = async (status: string, userId?: string): P
       return [];
     }
     
-    return data as Process[];
+    // Map the data to match our Process interface
+    const processes = data.map(process => ({
+      id: process.id,
+      infraction_id: process.infraction_id,
+      client_id: process.client_id,
+      assigned_to: process.assigned_to,
+      status: process.status as Process['status'],
+      type: process.type as Process['type'],
+      description: process.description,
+      created_at: process.created_at,
+      updated_at: process.updated_at,
+      infraction: process.infraction ? {
+        auto_number: process.infraction.auto_number,
+        description: process.infraction.description,
+        value: process.infraction.value,
+        vehicle: {
+          plate: process.infraction.vehicle?.plate || "Unknown"
+        }
+      } : undefined,
+      client: {
+        name: process.client?.name || "Unknown",
+        email: process.client?.email || ""
+      },
+      assignee: process.assignee ? {
+        name: process.assignee.name || "Unassigned"
+      } : undefined
+    }));
+    
+    return processes as Process[];
   } catch (error) {
     console.error(`Error in fetchProcessesByStatus for ${status}:`, error);
     return [];

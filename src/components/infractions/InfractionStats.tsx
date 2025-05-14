@@ -1,8 +1,17 @@
 
 import React from 'react';
 import { Card } from "@/components/ui/card";
-import { Infraction } from '@/pages/infractions/InfractionService';
 import { AlertTriangle, Clock, CheckCircle, FileText } from "lucide-react";
+
+// Define the Infraction interface locally since we removed InfractionService.tsx
+interface Infraction {
+  id: string;
+  status: 'pending' | 'processed' | 'notified' | 'contested' | 'closed';
+  value: number;
+  date?: string;
+  vehicle?: string;
+  description?: string;
+}
 
 interface InfractionStatsProps {
   infractions: Infraction[];

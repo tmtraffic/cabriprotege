@@ -5,6 +5,7 @@ import RouteWithLayout from "./RouteWithLayout";
 import NewProcess from "@/pages/processes/NewProcess";
 
 const ProcessManagement = lazy(() => import("@/pages/processes/ProcessManagement"));
+const ProcessDetail = lazy(() => import("@/pages/processes/ProcessDetail"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -32,5 +33,19 @@ export const processRoutes = [
     key="processos-novo" 
     path="/processos/novo" 
     element={<RouteWithLayout component={NewProcess} userRole="admin" />}
+  />,
+  <Route 
+    key="processos-detalhes" 
+    path="/processos/:id" 
+    element={
+      <RouteWithLayout 
+        component={() => (
+          <Suspense fallback={<PageLoader />}>
+            <ProcessDetail />
+          </Suspense>
+        )}
+        userRole="admin" 
+      />
+    }
   />
 ];

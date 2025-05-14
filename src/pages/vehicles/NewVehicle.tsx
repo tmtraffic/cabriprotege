@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -68,11 +67,17 @@ const NewVehicle = () => {
       const { data, error } = await supabase
         .from("vehicles")
         .insert({
+          brand: values.brand || "",  // Make sure these required fields have fallback values
+          model: values.model || "",
+          plate: values.plate || "",
           owner_id: user.id,
-          ...values,
+          year: values.year ? Number(values.year) : undefined,
+          color: values.color,
+          category: values.category,
+          renavam: values.renavam,
+          professional_use: values.professional_use
         })
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
 

@@ -234,7 +234,7 @@ const NewProcess = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma infração (recurso preventivo)</SelectItem>
+                        <SelectItem value="none">Nenhuma infração (recurso preventivo)</SelectItem>
                         {infractions.map((infraction) => (
                           <SelectItem key={infraction.id} value={infraction.id}>
                             {infraction.auto_number || "Sem número"} - {infraction.description} - R$ {infraction.value}

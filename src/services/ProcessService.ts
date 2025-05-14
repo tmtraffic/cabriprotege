@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Process {
@@ -28,45 +27,84 @@ export interface Process {
   };
 }
 
-export const fetchProcesses = async (userId?: string): Promise<Process[]> => {
+export const fetchProcesses = async (userId: string): Promise<Process[]> => {
   try {
-    let query = supabase
-      .from('processes')
+    const { data, error } = await supabase
+      .from("processes")
       .select(`
         *,
-        infraction:infraction_id (
-          auto_number,
-          description,
-          value,
-          vehicle:vehicle_id (
-            plate
-          )
-        ),
-        client:client_id (
-          name,
-          email
-        ),
-        assignee:assigned_to (
-          name
-        )
-      `);
-    
-    // If userId is provided, filter to only show processes for this user
-    if (userId) {
-      query = query.eq('client_id', userId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error("Error fetching processes:", error);
-      return [];
-    }
-    
-    return data as Process[];
+        infraction:infractions(*),
+        client:profiles!client_id(*),
+        assignee:profiles!assigned_to(*)
+      `)
+      .eq("client_id", userId);
+
+    if (error) throw error;
+
+    // Cast data to any first then transform to required type
+    const processData = (data as any[]).map(process => ({
+      id: process.id,
+      type: process.type,
+      status: process.status,
+      description: process.description,
+      created_at: process.created_at,
+      updated_at: process.updated_at,
+      infraction: process.infraction,
+      client: {
+        name: process.client?.name || "Unknown",
+        email: process.client?.email || ""
+      },
+      assignee: process.assignee ? {
+        name: process.assignee?.name || "Unassigned",
+        email: process.assignee?.email || ""
+      } : undefined
+    }));
+
+    return processData as Process[];
   } catch (error) {
-    console.error("Error in fetchProcesses:", error);
+    console.error("Error fetching processes:", error);
     return [];
+  }
+};
+
+export const fetchProcessById = async (processId: string): Promise<Process | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("processes")
+      .select(`
+        *,
+        infraction:infractions(*),
+        client:profiles!client_id(*),
+        assignee:profiles!assigned_to(*)
+      `)
+      .eq("id", processId)
+      .single();
+
+    if (error) throw error;
+
+    // Transform to required type
+    const process = {
+      id: data.id,
+      type: data.type,
+      status: data.status,
+      description: data.description,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      infraction: data.infraction,
+      client: {
+        name: data.client?.name || "Unknown",
+        email: data.client?.email || ""
+      },
+      assignee: data.assignee ? {
+        name: data.assignee?.name || "Unassigned",
+        email: data.assignee?.email || ""
+      } : undefined
+    };
+
+    return process as Process;
+  } catch (error) {
+    console.error("Error fetching process:", error);
+    return null;
   }
 };
 

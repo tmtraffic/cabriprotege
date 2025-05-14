@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { fetchVehicleById, Vehicle } from "@/services/VehicleService";
 import { fetchInfractions, Infraction } from "@/services/InfractionService";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const VehicleDetail = () => {
   const { id } = useParams<{ id: string }>();

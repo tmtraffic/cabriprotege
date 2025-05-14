@@ -9,7 +9,238 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      deadlines: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          priority: string | null
+          process_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          priority?: string | null
+          process_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          priority?: string | null
+          process_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadlines_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infractions: {
+        Row: {
+          auto_number: string | null
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          points: number | null
+          status: string | null
+          updated_at: string
+          value: number
+          vehicle_id: string
+        }
+        Insert: {
+          auto_number?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          points?: number | null
+          status?: string | null
+          updated_at?: string
+          value: number
+          vehicle_id: string
+        }
+        Update: {
+          auto_number?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          points?: number | null
+          status?: string | null
+          updated_at?: string
+          value?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infractions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processes: {
+        Row: {
+          assigned_to: string | null
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          infraction_id: string | null
+          status: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          infraction_id?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          infraction_id?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processes_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_infraction_id_fkey"
+            columns: ["infraction_id"]
+            isOneToOne: false
+            referencedRelation: "infractions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          brand: string
+          category: string | null
+          color: string | null
+          created_at: string
+          id: string
+          model: string
+          owner_id: string
+          plate: string
+          professional_use: boolean | null
+          renavam: string | null
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          brand: string
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          model: string
+          owner_id: string
+          plate: string
+          professional_use?: boolean | null
+          renavam?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          brand?: string
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          model?: string
+          owner_id?: string
+          plate?: string
+          professional_use?: boolean | null
+          renavam?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +249,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "employee" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +364,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "employee", "client"],
+    },
   },
 } as const

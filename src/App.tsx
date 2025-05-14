@@ -19,6 +19,9 @@ import InfractionConfig from "./components/admin/InfractionConfig";
 import WebhookConfig from "./components/integration/WebhookConfig";
 
 import UserManagement from "./pages/users/UserManagement";
+import NewVehicle from "./pages/vehicles/NewVehicle";
+import VehicleDetail from "./pages/vehicles/VehicleDetail";
+import NewProcess from "./pages/processes/NewProcess";
 
 import { lazy, Suspense } from "react";
 
@@ -81,6 +84,20 @@ const App = () => (
               </Suspense>
             </Layout>
           } />
+
+          {/* Add new vehicle route */}
+          <Route path="/veiculos/novo" element={
+            <Layout userRole="admin">
+              <NewVehicle />
+            </Layout>
+          } />
+
+          {/* Add vehicle detail route */}
+          <Route path="/veiculos/:id" element={
+            <Layout userRole="admin">
+              <VehicleDetail />
+            </Layout>
+          } />
           
           {/* Página unificada de processos */}
           <Route path="/processos" element={
@@ -88,6 +105,13 @@ const App = () => (
               <Suspense fallback={<PageLoader />}>
                 <ProcessManagement />
               </Suspense>
+            </Layout>
+          } />
+
+          {/* Add new process route */}
+          <Route path="/processos/novo" element={
+            <Layout userRole="admin">
+              <NewProcess />
             </Layout>
           } />
           
@@ -132,7 +156,7 @@ const App = () => (
             </Layout>
           } />
           
-          <Route path="/employee" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
+          <Route path="/employee" element={<Layout userRole="admin"><EmployeeDashboard /></Layout>} />
           
           <Route path="/admin" element={<Layout userRole="admin"><AdminDashboard /></Layout>} />
           

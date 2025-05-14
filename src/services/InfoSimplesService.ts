@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResultCNH, SearchResultVehicle, SearchResultFine, SearchHistory, AdditionalSearchParams, UfOption } from '@/models/SearchHistory';
 import { toast } from '@/components/ui/use-toast';
@@ -122,7 +123,7 @@ const InfoSimplesService = {
   async saveSearchHistory(
     searchType: 'cnh' | 'vehicle',
     searchQuery: string,
-    resultData: any,
+    resultData: { success: boolean; data?: any; error?: string },
     uf?: string
   ): Promise<void> {
     try {

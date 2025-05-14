@@ -64,8 +64,10 @@ export interface AdditionalSearchParams {
 export type UfOption = 'SP' | 'RJ' | 'MG' | 'PR' | 'RS' | 'SC' | 'BA' | 'ES' | 'GO' | 'PE' | 'DF';
 
 // Define a type for search result data that can be safely serialized to JSON
+// Making it compatible with Supabase's Json type by using Record<string, any>
 export interface SearchResultDataJson {
   success: boolean;
   data?: Record<string, any>; // Using Record<string, any> to make it compatible with Json type
   error?: string;
+  [key: string]: any; // Add index signature to make it compatible with Json type
 }

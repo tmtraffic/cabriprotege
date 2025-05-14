@@ -149,7 +149,7 @@ const InfoSimplesService = {
       }
       
       // Convert to a JSON-safe format before saving to Supabase
-      const resultDataJson: SearchResultDataJson = {
+      const resultDataJson: Record<string, any> = {
         success: resultData.success,
         error: resultData.error
       };

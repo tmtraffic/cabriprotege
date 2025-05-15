@@ -294,6 +294,7 @@ export type Database = {
           professional_use: boolean | null
           renavam: string | null
           updated_at: string
+          vehicle_id: string | null
           year: number | null
         }
         Insert: {
@@ -308,6 +309,7 @@ export type Database = {
           professional_use?: boolean | null
           renavam?: string | null
           updated_at?: string
+          vehicle_id?: string | null
           year?: number | null
         }
         Update: {
@@ -322,6 +324,7 @@ export type Database = {
           professional_use?: boolean | null
           renavam?: string | null
           updated_at?: string
+          vehicle_id?: string | null
           year?: number | null
         }
         Relationships: [

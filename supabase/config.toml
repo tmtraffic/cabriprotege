@@ -1,1 +1,55 @@
+
 project_id = "mkpvrydcuugrrzmopgto"
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+port = 54325
+
+[auth]
+enabled = true
+port = 54326
+
+[realtime]
+enabled = true
+port = 54327
+
+[functions.create-client]
+verify_jwt = true
+
+[functions.get-client-by-cpf-cnpj]
+verify_jwt = true
+
+[functions.update-client]
+verify_jwt = true
+
+[functions.create-vehicle]
+verify_jwt = true
+
+[functions.get-vehicles-by-client-id]
+verify_jwt = true
+
+[functions.consult-infosimples-vehicle-fines]
+verify_jwt = true
+
+[functions.consult-helena-fines]
+verify_jwt = true

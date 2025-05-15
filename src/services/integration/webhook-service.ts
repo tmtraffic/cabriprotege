@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/sonner";
 
 // Define webhook types
@@ -262,7 +263,5 @@ export async function triggerWebhook(eventType: string, data: any): Promise<void
  * Notify that a webhook has been received
  */
 const notifyWebhookReceived = (payload: any) => {
-  toast({
-    description: `Received webhook with ID: ${payload.id || 'unknown'}`,
-  });
+  toast(`Received webhook with ID: ${payload.id || 'unknown'}`);
 };

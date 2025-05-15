@@ -13,6 +13,7 @@ export function useVehicleForm(clientId?: string) {
   const [showResults, setShowResults] = useState(false);
   const [associateProcess, setAssociateProcess] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
+  const [searchResults, setSearchResults] = useState<any>(null);
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
@@ -23,9 +24,15 @@ export function useVehicleForm(clientId?: string) {
     }
   });
 
+  // Update client_id when it changes (e.g., from URL parameter)
+  if (clientId && form.getValues("client_id") !== clientId) {
+    form.setValue("client_id", clientId);
+  }
+
   const handleSearchFines = async () => {
     const plate = form.getValues("plate");
     const renavam = form.getValues("renavam");
+    const clientId = form.getValues("client_id");
     
     if (!plate && !renavam) {
       toast({
@@ -36,45 +43,92 @@ export function useVehicleForm(clientId?: string) {
     }
     
     setIsSearchingFines(true);
+    setSearchResults(null);
     
     try {
-      // We'll search using both APIs to be comprehensive
+      // First check if vehicle already exists
+      if (plate) {
+        const { data: existingVehicles, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('plate', plate)
+          .maybeSingle();
+
+        if (vehicleError) {
+          console.error("Error checking existing vehicle:", vehicleError);
+        } else if (existingVehicles) {
+          toast({
+            title: "Veículo encontrado",
+            description: "Esta placa já está cadastrada no sistema.",
+          });
+          
+          // Pre-fill form with existing vehicle data
+          form.reset({
+            ...existingVehicles,
+            is_owner_client: existingVehicles.is_owner_client ?? true
+          });
+          
+          // Update isOwner state
+          setIsOwner(!!existingVehicles.is_owner_client);
+        }
+      }
+      
+      // Search using both APIs for comprehensive results
       const promises = [];
       
-      // InfoSimples API
-      promises.push(
-        supabase.functions.invoke('consult-infosimples-vehicle-fines', {
-          body: { plate, renavam }
-        })
-      );
+      // InfoSimples API - search by plate or renavam
+      if (plate || renavam) {
+        promises.push(
+          supabase.functions.invoke('consult-infosimples-vehicle-fines', {
+            body: { 
+              plate, 
+              renavam,
+              client_id: clientId,
+              vehicle_id: null // Will be set once vehicle is created
+            }
+          })
+        );
+      }
       
-      // Helena API
-      promises.push(
-        supabase.functions.invoke('consult-helena-fines', {
-          body: { plate, renavam }
-        })
-      );
+      // Helena API - search by plate
+      if (plate) {
+        promises.push(
+          supabase.functions.invoke('consult-helena-fines', {
+            body: { 
+              plate,
+              client_id: clientId,
+              vehicle_id: null // Will be set once vehicle is created
+            }
+          })
+        );
+      }
       
       const results = await Promise.all(promises);
       
       // Check if there are any errors
-      const errors = results.filter(result => result.error);
+      const errors = results.filter(result => !result.data?.success);
       if (errors.length) {
-        console.error("API errors:", errors);
+        console.warn("Some API calls had errors:", errors);
+        if (errors.length === results.length) {
+          // All APIs failed
+          throw new Error("Todas as consultas de multas falharam. Tente novamente mais tarde.");
+        }
       }
       
-      // Show results
+      // Combine results
+      const combinedResults = results.map(r => r.data);
+      setSearchResults(combinedResults);
       setShowResults(true);
       
       toast({
         title: "Busca concluída",
         description: "Verificação de multas concluída com sucesso."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error searching for fines:", error);
       toast({
         title: "Erro na busca",
-        description: "Não foi possível buscar as multas. Tente novamente mais tarde.",
+        description: error.message || "Não foi possível buscar as multas. Tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {
@@ -83,6 +137,16 @@ export function useVehicleForm(clientId?: string) {
   };
 
   const onSubmit = async (data: VehicleFormValues) => {
+    // Validate that client_id is provided
+    if (!data.client_id) {
+      toast({
+        title: "Cliente necessário",
+        description: "Por favor, selecione um cliente para associar a este veículo.",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -98,13 +162,41 @@ export function useVehicleForm(clientId?: string) {
         description: "O veículo foi cadastrado com sucesso."
       });
       
+      // If we have search results in history and a new vehicle ID, update the search history
+      if (searchResults && newVehicle?.id) {
+        try {
+          // This could be enhanced with a dedicated edge function to update search history
+          const { data: searchHistory } = await supabase
+            .from('search_history')
+            .select('id')
+            .is('related_vehicle_id', null)
+            .eq('related_client_id', data.client_id)
+            .eq('search_type', 'vehicle_plate')
+            .eq('search_query', data.plate)
+            .limit(1);
+            
+          if (searchHistory && searchHistory.length > 0) {
+            await supabase
+              .from('search_history')
+              .update({ related_vehicle_id: newVehicle.id })
+              .eq('id', searchHistory[0].id);
+          }
+        } catch (updateError) {
+          console.error("Error linking search history to vehicle:", updateError);
+        }
+      }
+      
+      if (!associateProcess) {
+        form.reset(); // Clear form for new entry if not associating with process
+      }
+      
       // Return the new vehicle for further processing
       return newVehicle;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating vehicle:", error);
       toast({
         title: "Erro no cadastro",
-        description: "Não foi possível cadastrar o veículo. Tente novamente.",
+        description: error.message || "Não foi possível cadastrar o veículo. Tente novamente.",
         variant: "destructive"
       });
       return null;
@@ -125,6 +217,7 @@ export function useVehicleForm(clientId?: string) {
     isLoading,
     isSearchingFines,
     showResults,
+    searchResults,
     associateProcess,
     setAssociateProcess,
     isOwner,

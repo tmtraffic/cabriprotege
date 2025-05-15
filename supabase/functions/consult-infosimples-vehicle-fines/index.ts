@@ -39,7 +39,7 @@ serve(async (req) => {
 
     // Get the request body
     const requestData = await req.json()
-    const { plate, renavam, stateCode = 'rj' } = requestData
+    const { plate, renavam, stateCode = 'rj', client_id, vehicle_id } = requestData
 
     if (!plate && !renavam) {
       return new Response(
@@ -48,56 +48,109 @@ serve(async (req) => {
       )
     }
 
-    // Get API token from environment variables
+    // Get API credentials from environment variables
     const apiToken = Deno.env.get('INFOSIMPLES_API_TOKEN')
-    if (!apiToken) {
-      console.error('INFOSIMPLES_API_TOKEN is not set')
+    const apiEmail = Deno.env.get('INFOSIMPLES_EMAIL')
+    
+    if (!apiToken || !apiEmail) {
+      console.error('INFOSIMPLES_API_TOKEN or INFOSIMPLES_EMAIL is not set')
       return new Response(
-        JSON.stringify({ error: 'API configuration error' }),
+        JSON.stringify({ error: 'API configuration error', details: 'Infosimples API credentials not fully configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Determine search type and query
+    let searchType = plate ? 'vehicle_plate' : 'vehicle_renavam'
+    let searchQuery = plate || renavam
 
     // Prepare the request parameters
     const params = new URLSearchParams()
     if (plate) params.append('placa', plate)
     if (renavam) params.append('renavam', renavam)
+    params.append('email', apiEmail)
 
-    // Make the API request to Infosimples
-    const response = await fetch(
-      `https://api.infosimples.com/api/v2/consultas/detran/${stateCode}/debitos_veiculares?${params.toString()}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'token': apiToken,
-        },
+    let apiResponse = null
+    let errorDetails = null
+    
+    try {
+      // Make the API request to Infosimples
+      const response = await fetch(
+        `https://api.infosimples.com/api/v2/consultas/detran/${stateCode}/debitos_veiculares?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'token': apiToken,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Infosimples API responded with status ${response.status}: ${errorText}`)
       }
-    )
 
-    const apiResponse = await response.json()
+      apiResponse = await response.json()
+      
+      // Check if the API returned an error code
+      if (apiResponse.code !== 'ok' && apiResponse.errors && apiResponse.errors.length > 0) {
+        throw new Error(`Infosimples API error: ${apiResponse.errors.join(', ')}`)
+      }
+    } catch (apiError) {
+      console.error('Infosimples API error:', apiError)
+      errorDetails = apiError.message || String(apiError)
+      apiResponse = { error: true, message: errorDetails }
+    }
 
     // Log search to search_history table
     try {
       await supabaseClient.from('search_history').insert({
         user_id: user.id,
-        search_query: plate || renavam,
-        search_type: 'infosimples_vehicle_fines',
-        result_data: apiResponse
+        search_query: searchQuery,
+        search_type: searchType,
+        api_source: 'infosimples_vehicle_fines',
+        raw_result_data: apiResponse,
+        related_client_id: client_id || null,
+        related_vehicle_id: vehicle_id || null
       })
     } catch (error) {
       console.error('Error logging search history:', error)
       // Continue with the response even if logging fails
     }
 
+    // If we had an API error, return a structured error response
+    if (errorDetails) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'API request failed', 
+          details: errorDetails,
+          source: 'infosimples' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Return the standardized successful response
     return new Response(
-      JSON.stringify(apiResponse),
+      JSON.stringify({
+        success: true,
+        data: apiResponse,
+        error: null,
+        source: 'infosimples'
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error('Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal Server Error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: 'Internal Server Error', 
+        details: error.message || String(error),
+        source: 'infosimples' 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

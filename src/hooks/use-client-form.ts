@@ -12,6 +12,7 @@ export function useClientForm() {
   const [isSearchingFines, setIsSearchingFines] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [associateVehicle, setAssociateVehicle] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -42,29 +43,76 @@ export function useClientForm() {
     }
     
     setIsSearchingFines(true);
+    setSearchResults(null);
     
     try {
-      // Call the Helena or InfoSimples API through our edge function
+      // First, check if the client already exists
+      const { data: existingClient, error: clientError } = await supabase.functions.invoke('get-client-by-cpf-cnpj', {
+        body: { cpf_cnpj: cpf }
+      });
+
+      if (clientError) {
+        if (clientError.message !== "Client not found") {
+          console.error("Error checking existing client:", clientError);
+          toast({
+            title: "Erro na verificação de cliente",
+            description: "Ocorreu um erro ao verificar se o cliente já existe no sistema.",
+            variant: "destructive"
+          });
+        }
+      }
+
+      if (existingClient) {
+        toast({
+          title: "Cliente encontrado",
+          description: "Este CPF/CNPJ já está cadastrado no sistema.",
+        });
+        
+        // Optionally, pre-fill the form with existing client data
+        form.reset({
+          ...existingClient,
+          communication_preferences: existingClient.communication_preferences || {
+            email: true,
+            sms: false,
+            whatsapp: true,
+            phone: false
+          }
+        });
+      }
+      
+      // Call the Helena API through our edge function
       const { data: apiResponse, error } = await supabase.functions.invoke('consult-helena-fines', {
-        body: { driver_cpf: cpf }
+        body: { 
+          driver_cpf: cpf,
+          client_id: existingClient?.id // Link search history to client if found
+        }
       });
 
       if (error) {
         throw new Error(error.message);
       }
 
-      // Show results
+      // Store results and show results section
+      setSearchResults(apiResponse);
       setShowResults(true);
       
-      toast({
-        title: "Busca concluída",
-        description: "Foram encontradas infrações associadas a este CPF/CNPJ."
-      });
-    } catch (error) {
+      if (apiResponse.success) {
+        toast({
+          title: "Busca concluída",
+          description: "A consulta de multas foi realizada com sucesso."
+        });
+      } else {
+        toast({
+          title: "Aviso na consulta",
+          description: apiResponse.details || "A consulta foi concluída, mas podem haver limitações nos resultados.",
+          variant: "warning"
+        });
+      }
+    } catch (error: any) {
       console.error("Error searching for infractions:", error);
       toast({
         title: "Erro na busca",
-        description: "Não foi possível buscar as infrações. Tente novamente mais tarde.",
+        description: error.message || "Não foi possível buscar as infrações. Tente novamente mais tarde.",
         variant: "destructive"
       });
     } finally {
@@ -81,20 +129,24 @@ export function useClientForm() {
         body: data
       });
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
       
       toast({
         title: "Cliente cadastrado",
         description: "O cliente foi cadastrado com sucesso."
       });
       
-      // Clear form or redirect based on associateVehicle value
+      form.reset(); // Clear form
+      
+      // Return the new client data for further processing (e.g., redirecting to vehicle registration)
       return newClient;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating client:", error);
       toast({
         title: "Erro no cadastro",
-        description: "Não foi possível cadastrar o cliente. Tente novamente.",
+        description: error.message || "Não foi possível cadastrar o cliente. Tente novamente.",
         variant: "destructive"
       });
       return null;
@@ -108,6 +160,7 @@ export function useClientForm() {
     isLoading,
     isSearchingFines,
     showResults,
+    searchResults,
     associateVehicle,
     setAssociateVehicle,
     handleSearchInfractions,

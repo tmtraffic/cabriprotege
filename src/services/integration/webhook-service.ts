@@ -153,10 +153,7 @@ export const testWebhook = async (webhook: Webhook): Promise<{ success: boolean;
       failCount: 0
     });
     
-    toast({
-      title: "Webhook Test Successful",
-      description: "The test event was sent successfully.",
-    });
+    notifyWebhookReceived(testPayload);
     
     return {
       success: true,
@@ -260,3 +257,13 @@ export async function triggerWebhook(eventType: string, data: any): Promise<void
     console.error("Failed to trigger webhooks:", error);
   }
 }
+
+/**
+ * Notify that a webhook has been received
+ */
+const notifyWebhookReceived = (payload: any) => {
+  toast({
+    title: "Webhook Received",
+    description: `Received webhook with ID: ${payload.id || 'unknown'}`,
+  });
+};

@@ -1,5 +1,5 @@
 
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/components/ui/use-toast";
 
 const HELENA_API_BASE_URL = "https://api.helena.app/v1";
 
@@ -75,7 +75,6 @@ async function makeRequest<T>({
   } catch (error) {
     console.error("Helena API request failed:", error);
     toast({
-      title: "API Request Failed",
       description: error instanceof Error ? error.message : "Unknown error",
       variant: "destructive",
     });

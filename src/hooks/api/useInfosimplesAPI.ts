@@ -56,7 +56,7 @@ export function useConsultationStatus(protocol: string | null) {
     enabled: !!protocol,
     refetchInterval: (data) => {
       // Poll more frequently if the consultation is not completed
-      if (data?.status === 'concluido' || data?.status === 'erro') {
+      if (data && (data.status === 'concluido' || data.status === 'erro')) {
         return false; // Stop polling
       }
       return 5000; // Poll every 5 seconds

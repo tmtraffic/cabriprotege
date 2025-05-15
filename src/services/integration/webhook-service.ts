@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/sonner";
 
 // Define webhook types
@@ -121,7 +120,7 @@ export function toggleWebhookStatus(id: string): Webhook {
 /**
  * Test a webhook by sending a test event
  */
-export async function testWebhook(webhook: Webhook): Promise<boolean> {
+export const testWebhook = async (webhook: Webhook): Promise<{ success: boolean; message: string }> => {
   try {
     const testPayload = {
       event: "test_event",
@@ -159,28 +158,18 @@ export async function testWebhook(webhook: Webhook): Promise<boolean> {
       description: "The test event was sent successfully.",
     });
     
-    return true;
+    return {
+      success: true,
+      message: "Webhook test successful!"
+    };
   } catch (error) {
-    console.error("Failed to test webhook:", error);
-    
-    // Update fail count
-    const currentWebhook = getAllWebhooks().find(hook => hook.id === webhook.id);
-    if (currentWebhook) {
-      updateWebhook(webhook.id, { 
-        lastTriggered: new Date().toISOString(),
-        failCount: (currentWebhook.failCount || 0) + 1
-      });
-    }
-    
-    toast({
-      title: "Webhook Test Failed",
-      description: error instanceof Error ? error.message : "Unknown error",
-      variant: "destructive",
-    });
-    
-    return false;
+    console.error("Error testing webhook:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to test webhook"
+    };
   }
-}
+};
 
 /**
  * Helper to generate a unique ID

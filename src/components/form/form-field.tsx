@@ -16,6 +16,7 @@ interface FormInputFieldProps {
   description?: string;
   className?: string;
   children: React.ReactNode;
+  disabled?: boolean;
 }
 
 export function FormInputField({
@@ -23,6 +24,7 @@ export function FormInputField({
   label,
   description,
   className,
+  disabled,
   children
 }: FormInputFieldProps) {
   const { control } = useFormContext();
@@ -37,7 +39,8 @@ export function FormInputField({
           <FormControl>
             {React.cloneElement(children as React.ReactElement, { 
               id: name,
-              ...field
+              ...field,
+              disabled: disabled || field.disabled
             })}
           </FormControl>
           {description && <FormDescription>{description}</FormDescription>}

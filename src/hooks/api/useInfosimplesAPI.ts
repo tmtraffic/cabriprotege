@@ -7,7 +7,12 @@ export function useVehicleByPlate(plate: string | null) {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (plateNumber: string) => InfosimplesAPI.searchVehicleByPlate(plateNumber),
+    mutationFn: (plateNumber: string) => {
+      if (!plateNumber || plateNumber.trim().length < 5) {
+        throw new Error('Valid plate number is required');
+      }
+      return InfosimplesAPI.searchVehicleByPlate(plateNumber);
+    },
     onError: (error) => {
       toast({
         title: "Error",
@@ -22,7 +27,12 @@ export function useVehicleByRenavam(renavam: string | null) {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (renavamNumber: string) => InfosimplesAPI.searchVehicleByRenavam(renavamNumber),
+    mutationFn: (renavamNumber: string) => {
+      if (!renavamNumber || renavamNumber.trim().length < 9) {
+        throw new Error('Valid RENAVAM number is required');
+      }
+      return InfosimplesAPI.searchVehicleByRenavam(renavamNumber);
+    },
     onError: (error) => {
       toast({
         title: "Error",
@@ -37,8 +47,15 @@ export function useDriverByCNH(cnh: string | null, birthDate: string | null) {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: ({ cnh, birthDate }: { cnh: string, birthDate: string }) => 
-      InfosimplesAPI.searchDriverByCNH(cnh, birthDate),
+    mutationFn: ({ cnh, birthDate }: { cnh: string, birthDate: string }) => {
+      if (!cnh || cnh.trim().length < 9) {
+        throw new Error('Valid CNH number is required');
+      }
+      if (!birthDate) {
+        throw new Error('Birth date is required');
+      }
+      return InfosimplesAPI.searchDriverByCNH(cnh, birthDate);
+    },
     onError: (error) => {
       toast({
         title: "Error",
@@ -52,7 +69,12 @@ export function useDriverByCNH(cnh: string | null, birthDate: string | null) {
 export function useConsultationStatus(protocol: string | null) {
   return useQuery({
     queryKey: ['consultation', 'status', protocol],
-    queryFn: () => InfosimplesAPI.getConsultationStatus(protocol!),
+    queryFn: () => {
+      if (!protocol) {
+        throw new Error('Protocol is required');
+      }
+      return InfosimplesAPI.getConsultationStatus(protocol);
+    },
     enabled: !!protocol,
     refetchInterval: (data: any) => {
       // Poll more frequently if the consultation is not completed
@@ -61,13 +83,29 @@ export function useConsultationStatus(protocol: string | null) {
       }
       return 5000; // Poll every 5 seconds
     },
+    retry: 3,
   });
 }
 
 export function useConsultationResult(protocol: string | null) {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['consultation', 'result', protocol],
-    queryFn: () => InfosimplesAPI.getConsultationResult(protocol!),
+    queryFn: () => {
+      if (!protocol) {
+        throw new Error('Protocol is required');
+      }
+      return InfosimplesAPI.getConsultationResult(protocol);
+    },
     enabled: !!protocol,
+    retry: 2,
+    onError: (error) => {
+      toast({
+        title: "Error retrieving results",
+        description: error instanceof Error ? error.message : "Failed to retrieve consultation results",
+        variant: "destructive",
+      });
+    }
   });
 }

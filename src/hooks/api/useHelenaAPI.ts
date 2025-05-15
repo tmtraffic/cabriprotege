@@ -27,7 +27,12 @@ export function useCreateConsult() {
 export function useConsultStatus(consultId: string | null) {
   return useQuery({
     queryKey: ['consult', 'status', consultId],
-    queryFn: () => HelenaAPI.getConsultStatus(consultId!),
+    queryFn: () => {
+      if (!consultId) {
+        throw new Error('Consultation ID is required');
+      }
+      return HelenaAPI.getConsultStatus(consultId);
+    },
     enabled: !!consultId,
     refetchInterval: (data: any) => {
       // Poll more frequently if the status is not completed
@@ -36,21 +41,47 @@ export function useConsultStatus(consultId: string | null) {
       }
       return 5000; // Poll every 5 seconds
     },
+    retry: 3,
   });
 }
 
 export function useConsultResults(consultId: string | null) {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['consult', 'results', consultId],
-    queryFn: () => HelenaAPI.getConsultResults(consultId!),
+    queryFn: () => {
+      if (!consultId) {
+        throw new Error('Consultation ID is required');
+      }
+      return HelenaAPI.getConsultResults(consultId);
+    },
     enabled: !!consultId,
+    retry: 2,
+    onError: (error) => {
+      toast({
+        title: "Error retrieving results",
+        description: error instanceof Error ? error.message : "Failed to retrieve consultation results",
+        variant: "destructive",
+      });
+    }
   });
 }
 
 export function useConsultsList(page = 1, perPage = 10) {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['consults', 'list', page, perPage],
     queryFn: () => HelenaAPI.listConsults(page, perPage),
     placeholderData: (previousData) => previousData,
+    retry: 2,
+    onError: (error) => {
+      toast({
+        title: "Error retrieving consults",
+        description: error instanceof Error ? error.message : "Failed to retrieve consultations list",
+        variant: "destructive",
+      });
+    }
   });
 }

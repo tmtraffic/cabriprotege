@@ -100,12 +100,14 @@ export function useConsultationResult(protocol: string | null) {
     },
     enabled: !!protocol,
     retry: 2,
-    onError: (error) => {
-      toast({
-        title: "Error retrieving results",
-        description: error instanceof Error ? error.message : "Failed to retrieve consultation results",
-        variant: "destructive",
-      });
+    meta: {
+      onError: (error: Error) => {
+        toast({
+          title: "Error retrieving results",
+          description: error instanceof Error ? error.message : "Failed to retrieve consultation results",
+          variant: "destructive",
+        });
+      }
     }
   });
 }

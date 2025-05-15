@@ -263,7 +263,6 @@ export async function triggerWebhook(eventType: string, data: any): Promise<void
  */
 const notifyWebhookReceived = (payload: any) => {
   toast({
-    title: "Webhook Received",
     description: `Received webhook with ID: ${payload.id || 'unknown'}`,
   });
 };

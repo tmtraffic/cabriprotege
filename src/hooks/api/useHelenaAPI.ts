@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as HelenaAPI from '@/services/api/helena-api';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,7 +29,7 @@ export function useConsultStatus(consultId: string | null) {
     queryKey: ['consult', 'status', consultId],
     queryFn: () => HelenaAPI.getConsultStatus(consultId!),
     enabled: !!consultId,
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       // Poll more frequently if the status is not completed
       if (data && (data.status === 'completed' || data.status === 'failed')) {
         return false; // Stop polling

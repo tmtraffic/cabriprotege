@@ -54,7 +54,7 @@ export function useConsultationStatus(protocol: string | null) {
     queryKey: ['consultation', 'status', protocol],
     queryFn: () => InfosimplesAPI.getConsultationStatus(protocol!),
     enabled: !!protocol,
-    refetchInterval: (data) => {
+    refetchInterval: (data: any) => {
       // Poll more frequently if the consultation is not completed
       if (data && (data.status === 'concluido' || data.status === 'erro')) {
         return false; // Stop polling

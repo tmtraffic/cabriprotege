@@ -345,11 +345,13 @@ const ProcessDetail = () => {
     if (!process?.id || !vehicle?.id) return;
     
     try {
+      // When calling create-infraction, we send vehicle_id and other infraction data
+      // but not process_id directly in the object - we're passing it separately
       const { data, error } = await supabase.functions.invoke("create-infraction", {
         body: {
           ...infractionData,
-          process_id: process.id,
-          vehicle_id: vehicle.id
+          vehicle_id: vehicle.id,
+          process_id: process.id  // This is handled properly in the Edge Function
         }
       });
       

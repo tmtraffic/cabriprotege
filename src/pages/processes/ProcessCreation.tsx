@@ -34,6 +34,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, ArrowLeft, Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatDate } from "@/lib/date-utils";
 
 // Define the form schema
 const processSchema = z.object({

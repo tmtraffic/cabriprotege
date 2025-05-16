@@ -47,24 +47,49 @@ serve(async (req) => {
       )
     }
 
-    // Fetch all infractions related to this process
-    const { data: infractions, error } = await supabaseClient
-      .from('infractions')
-      .select('*')
-      .eq('process_id', process_id)
-      .order('date', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching infractions:', error)
-      
+    // Get the process to find the linked infraction_id
+    const { data: process, error: processError } = await supabaseClient
+      .from('processes')
+      .select('infraction_id')
+      .eq('id', process_id)
+      .maybeSingle()
+    
+    if (processError) {
+      console.error('Error fetching process:', processError)
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: processError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    // If there is no linked infraction, return an empty array
+    if (!process || !process.infraction_id) {
+      return new Response(
+        JSON.stringify([]),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Fetch the infraction related to this process
+    const { data: infraction, error: infractionError } = await supabaseClient
+      .from('infractions')
+      .select('*')
+      .eq('id', process.infraction_id)
+      .maybeSingle()
+
+    if (infractionError) {
+      console.error('Error fetching infraction:', infractionError)
+      return new Response(
+        JSON.stringify({ error: infractionError.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Return the infraction as an array (even if it's just one)
+    const infractions = infraction ? [infraction] : []
+    
     return new Response(
-      JSON.stringify(infractions || []),
+      JSON.stringify(infractions),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

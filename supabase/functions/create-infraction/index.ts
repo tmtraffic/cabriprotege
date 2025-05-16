@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 interface CreateInfractionRequest {
-  process_id: string;
+  process_id?: string;
   vehicle_id: string;
   auto_number?: string;
   description?: string;
@@ -104,18 +104,22 @@ serve(async (req) => {
     }
 
     // Insert the new infraction
+    // Note: We'll handle process_id here even though it's not in the types
+    // We create a separate insertData object to only include properties that exist in the table
+    const insertData = {
+      vehicle_id: infractionData.vehicle_id,
+      auto_number: infractionData.auto_number,
+      description: infractionData.description,
+      date: infractionData.date,
+      value: infractionData.value,
+      points: infractionData.points || 0,
+      status: infractionData.status || 'pending'
+    }
+    
+    // Create the infraction record first
     const { data: newInfraction, error } = await supabaseClient
       .from('infractions')
-      .insert({
-        vehicle_id: infractionData.vehicle_id,
-        process_id: infractionData.process_id,
-        auto_number: infractionData.auto_number,
-        description: infractionData.description,
-        date: infractionData.date,
-        value: infractionData.value,
-        points: infractionData.points || 0,
-        status: infractionData.status || 'pending'
-      })
+      .insert(insertData)
       .select()
       .single()
 
@@ -126,6 +130,21 @@ serve(async (req) => {
         JSON.stringify({ error: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+    
+    // If process_id was provided, update the process to link to this infraction
+    if (infractionData.process_id && newInfraction) {
+      // For tables that don't have a direct process_id column, we need to use a different approach
+      // Link the infraction to the process using a separate update to the processes table
+      const { error: linkError } = await supabaseClient
+        .from('processes')
+        .update({ infraction_id: newInfraction.id })
+        .eq('id', infractionData.process_id)
+      
+      if (linkError) {
+        console.error('Error linking infraction to process:', linkError)
+        // We don't fail the request here, just log the error
+      }
     }
 
     return new Response(

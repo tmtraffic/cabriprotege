@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -32,6 +31,27 @@ import {
   Clock,
   CheckCircle
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Process {
   id: string;
@@ -87,7 +107,12 @@ const ProcessDetail = () => {
   const [assignedUser, setAssignedUser] = useState<AssignedUser | null>(null);
   const [infractions, setInfractions] = useState<Infraction[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-
+  const [availableInfractions, setAvailableInfractions] = useState<Infraction[]>([]);
+  const [isLoadingAvailableInfractions, setIsLoadingAvailableInfractions] = useState(false);
+  const [showAddInfractionDialog, setShowAddInfractionDialog] = useState(false);
+  const [selectedInfractionIds, setSelectedInfractionIds] = useState<string[]>([]);
+  const [isLinkingInfractions, setIsLinkingInfractions] = useState(false);
+  
   useEffect(() => {
     const fetchProcessDetails = async () => {
       if (!processId) return;
@@ -231,6 +256,123 @@ const ProcessDetail = () => {
       toast({
         title: "Erro ao atualizar processo",
         description: error.message || "Não foi possível atualizar o processo.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchAvailableInfractions = async () => {
+    if (!vehicle?.id) return;
+    
+    setIsLoadingAvailableInfractions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-infractions-by-vehicle", {
+        body: { vehicle_id: vehicle.id }
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      // Filter out infractions that are already linked to this process
+      const linkedIds = infractions.map(inf => inf.id);
+      const availableOnes = (data || []).filter(inf => !linkedIds.includes(inf.id));
+      
+      setAvailableInfractions(availableOnes);
+    } catch (error) {
+      console.error("Error fetching available infractions:", error);
+      toast({
+        title: "Erro ao buscar infrações",
+        description: "Não foi possível carregar as infrações disponíveis.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingAvailableInfractions(false);
+    }
+  };
+
+  const handleInfractionSelection = (infractionId: string) => {
+    setSelectedInfractionIds(prev => 
+      prev.includes(infractionId) 
+        ? prev.filter(id => id !== infractionId)
+        : [...prev, infractionId]
+    );
+  };
+
+  const linkInfractions = async () => {
+    if (!process?.id || selectedInfractionIds.length === 0) return;
+    
+    setIsLinkingInfractions(true);
+    try {
+      // For each selected infraction, update it to link to this process
+      const updatePromises = selectedInfractionIds.map(infractionId => 
+        supabase
+          .from('infractions')
+          .update({ process_id: process.id })
+          .eq('id', infractionId)
+      );
+      
+      await Promise.all(updatePromises);
+      
+      toast({
+        title: "Infrações vinculadas",
+        description: `${selectedInfractionIds.length} infrações foram vinculadas a este processo.`
+      });
+      
+      // Refresh infractions list
+      const { data, error } = await supabase.functions.invoke("list-infractions-by-process-id", {
+        body: { process_id: processId }
+      });
+      
+      if (!error && data) {
+        setInfractions(data);
+      }
+      
+      // Clear selection and close dialog
+      setSelectedInfractionIds([]);
+      setShowAddInfractionDialog(false);
+    } catch (error) {
+      console.error("Error linking infractions:", error);
+      toast({
+        title: "Erro ao vincular infrações",
+        description: "Não foi possível vincular as infrações selecionadas.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLinkingInfractions(false);
+    }
+  };
+
+  const createAndLinkInfraction = async (infractionData: any) => {
+    if (!process?.id || !vehicle?.id) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("create-infraction", {
+        body: {
+          ...infractionData,
+          process_id: process.id,
+          vehicle_id: vehicle.id
+        }
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      toast({
+        title: "Infração criada",
+        description: "A infração foi criada e vinculada a este processo."
+      });
+      
+      // Refresh infractions list
+      const { data: updatedInfractions, error: fetchError } = await supabase.functions.invoke("list-infractions-by-process-id", {
+        body: { process_id: processId }
+      });
+      
+      if (!fetchError && updatedInfractions) {
+        setInfractions(updatedInfractions);
+      }
+    } catch (error: any) {
+      console.error("Error creating infraction:", error);
+      toast({
+        title: "Erro ao criar infração",
+        description: error.message || "Não foi possível criar a infração.",
         variant: "destructive"
       });
     }
@@ -407,9 +549,89 @@ const ProcessDetail = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Infrações Vinculadas</h3>
-                    <Button size="sm">
-                      Adicionar Infração
-                    </Button>
+                    <Dialog open={showAddInfractionDialog} onOpenChange={setShowAddInfractionDialog}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" onClick={fetchAvailableInfractions}>
+                          Vincular Infrações
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Vincular Infrações</DialogTitle>
+                          <DialogDescription>
+                            Selecione as infrações que deseja vincular a este processo.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        {isLoadingAvailableInfractions ? (
+                          <div className="flex justify-center py-8">
+                            <LoadingSpinner size="lg" />
+                          </div>
+                        ) : availableInfractions.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground">
+                              Não há infrações disponíveis para vincular.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="max-h-[400px] overflow-y-auto space-y-2">
+                            {availableInfractions.map((infraction) => (
+                              <div 
+                                key={infraction.id} 
+                                className={`border rounded-md p-3 cursor-pointer transition-colors ${
+                                  selectedInfractionIds.includes(infraction.id) 
+                                    ? "border-primary bg-primary/5" 
+                                    : "hover:bg-accent"
+                                }`}
+                                onClick={() => handleInfractionSelection(infraction.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium">
+                                      {infraction.auto_number || "Sem número de auto"}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {infraction.description || "Sem descrição"}
+                                    </p>
+                                    <div className="flex items-center mt-1 text-sm">
+                                      <span className="mr-3">Data: {formatDate(infraction.date)}</span>
+                                      <span>Valor: R$ {infraction.value.toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                  <Checkbox 
+                                    checked={selectedInfractionIds.includes(infraction.id)}
+                                    onCheckedChange={() => handleInfractionSelection(infraction.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowAddInfractionDialog(false)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button 
+                            onClick={linkInfractions} 
+                            disabled={isLinkingInfractions || selectedInfractionIds.length === 0}
+                          >
+                            {isLinkingInfractions ? (
+                              <>
+                                <LoadingSpinner size="sm" className="mr-2" />
+                                Vinculando...
+                              </>
+                            ) : (
+                              "Vincular Selecionadas"
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
 
                   {infractions.length === 0 ? (
@@ -420,10 +642,28 @@ const ProcessDetail = () => {
                         Este processo ainda não possui infrações vinculadas. Você pode adicionar uma infração manualmente ou vincular uma infração existente.
                       </p>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={fetchAvailableInfractions}
+                        >
                           Buscar Infrações
                         </Button>
-                        <Button size="sm">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            // Navigate to infraction creation with process_id and vehicle_id
+                            if (process?.id && vehicle?.id) {
+                              navigate(`/infracoes/nova?processId=${process.id}&vehicleId=${vehicle.id}`);
+                            } else {
+                              toast({
+                                title: "Dados incompletos",
+                                description: "É necessário ter um veículo vinculado para adicionar uma infração.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                        >
                           Adicionar Manualmente
                         </Button>
                       </div>
@@ -434,8 +674,8 @@ const ProcessDetail = () => {
                         <div key={infraction.id} className="border rounded-md p-3">
                           <div className="flex justify-between">
                             <div>
-                              <p className="font-medium">{infraction.auto_number}</p>
-                              <p className="text-sm text-muted-foreground">{infraction.description}</p>
+                              <p className="font-medium">{infraction.auto_number || "Sem número de auto"}</p>
+                              <p className="text-sm text-muted-foreground">{infraction.description || "Sem descrição"}</p>
                             </div>
                             <Badge className={getStatusBadgeClass(infraction.status)}>
                               {infraction.status}
@@ -447,6 +687,15 @@ const ProcessDetail = () => {
                               <span>{formatDate(infraction.date)}</span>
                             </div>
                             <div>R$ {infraction.value.toFixed(2)}</div>
+                          </div>
+                          <div className="mt-2 flex justify-end">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => navigate(`/infracoes/${infraction.id}`)}
+                            >
+                              Ver Detalhes
+                            </Button>
                           </div>
                         </div>
                       ))}

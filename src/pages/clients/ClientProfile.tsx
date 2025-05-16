@@ -1,6 +1,3 @@
-I'll provide the full code for `src/pages/clients/ClientProfile.tsx` with the Search import added:
-
-```typescript
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -538,4 +535,3 @@ const ProcessDetail = () => {
 };
 
 export default ProcessDetail;
-```

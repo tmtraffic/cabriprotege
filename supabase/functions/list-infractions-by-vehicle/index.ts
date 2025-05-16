@@ -25,7 +25,7 @@ serve(async (req) => {
       }
     )
 
-    // Verify user is authenticated and has admin role
+    // Verify user is authenticated
     const {
       data: { user },
     } = await supabaseClient.auth.getUser()
@@ -37,61 +37,42 @@ serve(async (req) => {
       )
     }
 
-    // Check if the user has admin role
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    // Parse the request to get vehicle_id and optional filter params
+    const { vehicle_id, status } = await req.json()
 
-    if (profileError || !profile || profile.role !== 'admin') {
+    if (!vehicle_id) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient permissions' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Parse the request to get template_id
-    const { template_id } = await req.json()
-
-    if (!template_id) {
-      return new Response(
-        JSON.stringify({ error: 'Template ID is required' }),
+        JSON.stringify({ error: 'Vehicle ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Verify template exists
-    const { data: existingTemplate, error: fetchError } = await supabaseClient
-      .from('notification_templates')
-      .select('id')
-      .eq('id', template_id)
-      .maybeSingle()
-
-    if (fetchError || !existingTemplate) {
-      return new Response(
-        JSON.stringify({ error: 'Template not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Build query
+    let query = supabaseClient
+      .from('infractions')
+      .select('*')
+      .eq('vehicle_id', vehicle_id)
+      .order('date', { ascending: false })
+    
+    // Apply status filter if provided
+    if (status) {
+      query = query.eq('status', status)
     }
 
-    // Delete the template
-    const { error: deleteError } = await supabaseClient
-      .from('notification_templates')
-      .delete()
-      .eq('id', template_id)
+    // Execute query
+    const { data: infractions, error } = await query
 
-    if (deleteError) {
-      console.error('Error deleting notification template:', deleteError)
+    if (error) {
+      console.error('Error fetching infractions by vehicle:', error)
       
       return new Response(
-        JSON.stringify({ error: deleteError.message }),
+        JSON.stringify({ error: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
-      JSON.stringify({ success: true, id: template_id }),
+      JSON.stringify(infractions || []),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

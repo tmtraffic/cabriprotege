@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -33,7 +32,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define the form schema
 const processSchema = z.object({
@@ -80,6 +80,9 @@ const ProcessCreation = () => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  const [availableInfractions, setAvailableInfractions] = useState<any[]>([]);
+  const [isLoadingInfractions, setIsLoadingInfractions] = useState(false);
+  const [selectedInfractions, setSelectedInfractions] = useState<string[]>([]);
   
   // Initialize form
   const form = useForm<ProcessFormValues>({
@@ -183,12 +186,62 @@ const ProcessCreation = () => {
     fetchUsers();
   }, []);
   
+  // Watch vehicle_id to fetch infractions when it changes
+  const selectedVehicleId = form.watch("vehicle_id");
+  
+  // Fetch infractions when vehicle is selected
+  useEffect(() => {
+    if (!selectedVehicleId) {
+      setAvailableInfractions([]);
+      return;
+    }
+    
+    const fetchInfractions = async () => {
+      setIsLoadingInfractions(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("list-infractions-by-vehicle", {
+          body: { vehicle_id: selectedVehicleId, status: "pending" }
+        });
+        
+        if (error) throw new Error(error.message);
+        setAvailableInfractions(data || []);
+      } catch (error) {
+        console.error("Error fetching infractions:", error);
+        toast({
+          title: "Erro ao buscar infrações",
+          description: "Não foi possível carregar as infrações do veículo.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingInfractions(false);
+      }
+    };
+    
+    fetchInfractions();
+  }, [selectedVehicleId, toast]);
+  
+  // Handle infraction selection
+  const handleInfractionSelection = (infractionId: string) => {
+    setSelectedInfractions(prev => 
+      prev.includes(infractionId) 
+        ? prev.filter(id => id !== infractionId)
+        : [...prev, infractionId]
+    );
+  };
+  
   // Handle form submission
-  const onSubmit = async (values: ProcessFormValues) => {
+  const onSubmit = async (data: ProcessFormValues) => {
     setIsSubmitting(true);
+    
     try {
-      const { data, error } = await supabase.functions.invoke("create-process", {
-        body: values
+      // Add selected infractions to the process data
+      const processData = {
+        ...data,
+        linked_infractions: selectedInfractions.length > 0 ? selectedInfractions : undefined
+      };
+      
+      const { data: newProcess, error } = await supabase.functions.invoke("create-process", {
+        body: processData
       });
       
       if (error) throw new Error(error.message);
@@ -199,7 +252,7 @@ const ProcessCreation = () => {
       });
       
       // Redirect to the new process page
-      navigate(`/processos/${data.id}`);
+      navigate(`/processos/${newProcess.id}`);
     } catch (error: any) {
       console.error("Error creating process:", error);
       toast({
@@ -375,6 +428,69 @@ const ProcessCreation = () => {
                         </Button>
                       </div>
                     )}
+                  </div>
+                )}
+                
+                {/* Infractions Section (if vehicle is selected) */}
+                {selectedVehicleId && (
+                  <div className="border rounded-md p-4">
+                    <h3 className="text-lg font-medium mb-4">Infrações Disponíveis</h3>
+                    
+                    {isLoadingInfractions ? (
+                      <div className="flex justify-center py-4">
+                        <LoadingSpinner size="md" />
+                      </div>
+                    ) : availableInfractions.length === 0 ? (
+                      <div className="text-center py-4 text-muted-foreground">
+                        Nenhuma infração pendente encontrada para este veículo.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {availableInfractions.map((infraction) => (
+                          <div 
+                            key={infraction.id} 
+                            className={`border rounded-md p-3 cursor-pointer transition-colors ${
+                              selectedInfractions.includes(infraction.id) 
+                                ? "border-primary bg-primary/5" 
+                                : "hover:bg-accent"
+                            }`}
+                            onClick={() => handleInfractionSelection(infraction.id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">
+                                  {infraction.auto_number || "Sem número de auto"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {infraction.description || "Sem descrição"}
+                                </p>
+                                <div className="flex items-center mt-1 text-sm">
+                                  <span className="mr-3">Data: {formatDate(infraction.date)}</span>
+                                  <span>Valor: R$ {infraction.value.toFixed(2)}</span>
+                                </div>
+                              </div>
+                              <Checkbox 
+                                checked={selectedInfractions.includes(infraction.id)}
+                                onCheckedChange={() => handleInfractionSelection(infraction.id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="mt-4 text-sm">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/infracoes/nova?vehicleId=${selectedVehicleId}`)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar Nova Infração
+                      </Button>
+                    </div>
                   </div>
                 )}
                 

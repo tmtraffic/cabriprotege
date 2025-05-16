@@ -2,22 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -345,13 +329,12 @@ const ProcessDetail = () => {
     if (!process?.id || !vehicle?.id) return;
     
     try {
-      // When calling create-infraction, we send vehicle_id and other infraction data
-      // but not process_id directly in the object - we're passing it separately
+      // Now we can directly send process_id as part of the infraction data
       const { data, error } = await supabase.functions.invoke("create-infraction", {
         body: {
           ...infractionData,
           vehicle_id: vehicle.id,
-          process_id: process.id  // This is handled properly in the Edge Function
+          process_id: process.id
         }
       });
       

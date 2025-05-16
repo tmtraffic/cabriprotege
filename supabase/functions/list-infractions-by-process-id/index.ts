@@ -47,49 +47,23 @@ serve(async (req) => {
       )
     }
 
-    // Get the process to find the linked infraction_id
-    const { data: process, error: processError } = await supabaseClient
-      .from('processes')
-      .select('infraction_id')
-      .eq('id', process_id)
-      .maybeSingle()
-    
-    if (processError) {
-      console.error('Error fetching process:', processError)
-      return new Response(
-        JSON.stringify({ error: processError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // If there is no linked infraction, return an empty array
-    if (!process || !process.infraction_id) {
-      return new Response(
-        JSON.stringify([]),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Fetch the infraction related to this process
-    const { data: infraction, error: infractionError } = await supabaseClient
+    // Directly query infractions by process_id
+    const { data: infractions, error: infractionError } = await supabaseClient
       .from('infractions')
       .select('*')
-      .eq('id', process.infraction_id)
-      .maybeSingle()
-
+      .eq('process_id', process_id)
+    
     if (infractionError) {
-      console.error('Error fetching infraction:', infractionError)
+      console.error('Error fetching infractions:', infractionError)
       return new Response(
         JSON.stringify({ error: infractionError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Return the infraction as an array (even if it's just one)
-    const infractions = infraction ? [infraction] : []
-    
+    // Return the infractions list (which may be empty)
     return new Response(
-      JSON.stringify(infractions),
+      JSON.stringify(infractions || []),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

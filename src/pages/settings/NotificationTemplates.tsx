@@ -382,7 +382,7 @@ const NotificationTemplates = () => {
                     placeholder="Assunto do e-mail"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Você pode usar variáveis como {{'{{'}}clientName{{'}}'}} no assunto.
+                    Você pode usar variáveis como {"{clientName}"} no assunto.
                   </p>
                 </div>
               )}
@@ -399,19 +399,19 @@ const NotificationTemplates = () => {
                   className="min-h-[200px]"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Você pode usar variáveis no formato {{'{{'}}variableName{{'}}'}} que serão substituídas ao enviar a notificação.
+                  Você pode usar variáveis no formato {"{variableName}"} que serão substituídas ao enviar a notificação.
                 </p>
               </div>
               
               <div className="bg-slate-50 p-4 rounded-md">
                 <h4 className="text-sm font-medium mb-2">Variáveis Disponíveis</h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div><code>{{'{{'}}clientName{{'}}'}}</code> - Nome do cliente</div>
-                  <div><code>{{'{{'}}processId{{'}}'}}</code> - ID do processo</div>
-                  <div><code>{{'{{'}}processType{{'}}'}}</code> - Tipo do processo</div>
-                  <div><code>{{'{{'}}processStatus{{'}}'}}</code> - Status do processo</div>
-                  <div><code>{{'{{'}}vehiclePlate{{'}}'}}</code> - Placa do veículo</div>
-                  <div><code>{{'{{'}}deadlineDate{{'}}'}}</code> - Data do prazo</div>
+                  <div><code>{"{clientName}"}</code> - Nome do cliente</div>
+                  <div><code>{"{processId}"}</code> - ID do processo</div>
+                  <div><code>{"{processType}"}</code> - Tipo do processo</div>
+                  <div><code>{"{processStatus}"}</code> - Status do processo</div>
+                  <div><code>{"{vehiclePlate}"}</code> - Placa do veículo</div>
+                  <div><code>{"{deadlineDate}"}</code> - Data do prazo</div>
                 </div>
               </div>
             </div>

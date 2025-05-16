@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -105,11 +106,10 @@ const ProcessCreation = () => {
       
       setIsLoadingClients(true);
       try {
-        // Fix: Using REST API directly since 'clients' table isn't in the types
-        const { data, error } = await supabase
-          .rpc('search_clients', {
-            search_term: clientSearch
-          });
+        // Using the edge function instead of rpc
+        const { data, error } = await supabase.functions.invoke("search-clients", {
+          body: { search_term: clientSearch }
+        });
         
         if (error) throw error;
         setClients(data || []);
@@ -174,7 +174,7 @@ const ProcessCreation = () => {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, name, role")
-          .in("role", ["admin", "employee"]) // Changed 'staff' to 'employee' to match app_role enum
+          .in("role", ["admin", "employee"]) 
           .order("name");
         
         if (error) throw error;

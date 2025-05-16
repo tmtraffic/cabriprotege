@@ -48,9 +48,9 @@ serve(async (req) => {
     }
 
     // Fetch all clients matching the search term
-    // Note: This assumes a profiles table that contains user data including name and cpf_cnpj
+    // Note: This assumes a clients table (not profiles) that contains client data including name and cpf_cnpj
     const { data: clients, error } = await supabaseClient
-      .from('profiles')
+      .from('clients')
       .select('id, name, cpf_cnpj')
       .or(`name.ilike.%${search_term}%,cpf_cnpj.ilike.%${search_term}%`)
       .limit(10)

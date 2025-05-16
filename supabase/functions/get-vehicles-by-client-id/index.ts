@@ -37,13 +37,12 @@ serve(async (req) => {
       )
     }
 
-    // Parse the URL to get the client_id query parameter
-    const url = new URL(req.url)
-    const clientId = url.searchParams.get('client_id')
+    // Parse the request to get client_id
+    const { client_id } = await req.json()
 
-    if (!clientId) {
+    if (!client_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing client_id parameter' }),
+        JSON.stringify({ error: 'Client ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -51,8 +50,8 @@ serve(async (req) => {
     // Fetch all vehicles for the given client
     const { data: vehicles, error } = await supabaseClient
       .from('vehicles')
-      .select('*')
-      .eq('client_id', clientId)
+      .select('id, plate, brand, model')
+      .eq('client_id', client_id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -64,7 +63,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify(vehicles),
+      JSON.stringify(vehicles || []),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

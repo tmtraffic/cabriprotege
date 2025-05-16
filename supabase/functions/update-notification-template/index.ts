@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface UpdateTemplateRequest {
+interface TemplateUpdateRequest {
   id: string;
   name?: string;
   type?: string;
@@ -60,9 +60,9 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const updateData: UpdateTemplateRequest = await req.json();
+    const updateData: TemplateUpdateRequest = await req.json();
 
-    // Validate ID is provided
+    // Validate required fields
     if (!updateData.id) {
       return new Response(
         JSON.stringify({ error: 'Template ID is required' }),
@@ -70,45 +70,27 @@ serve(async (req) => {
       )
     }
 
-    // Fetch the existing template to check its type
-    const { data: existingTemplate, error: fetchError } = await supabaseClient
-      .from('notification_templates')
-      .select('*')
-      .eq('id', updateData.id)
-      .maybeSingle()
+    // Extract ID and prepare update data
+    const { id, ...fields } = updateData;
 
-    if (fetchError || !existingTemplate) {
-      return new Response(
-        JSON.stringify({ error: 'Template not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Prepare data for update
-    const { id, ...updateFields } = updateData;
-
-    // If type is email (either from existing or being updated to), ensure subject_template exists
-    const finalType = updateFields.type || existingTemplate.type;
-    const finalSubject = updateFields.subject_template !== undefined ? 
-      updateFields.subject_template : 
-      existingTemplate.subject_template;
-    
-    if (finalType === 'email' && !finalSubject) {
+    // Check if an email template has a subject
+    if (fields.type === 'email' && fields.subject_template === '') {
       return new Response(
         JSON.stringify({ error: 'Email templates require a subject_template' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // If name is being updated, check for duplicates
-    if (updateFields.name && updateFields.name !== existingTemplate.name) {
-      const { data: nameExists, error: nameError } = await supabaseClient
+    // Prevent name conflicts if name is being updated
+    if (fields.name) {
+      const { data: existingTemplate, error: existingError } = await supabaseClient
         .from('notification_templates')
         .select('id')
-        .eq('name', updateFields.name)
+        .eq('name', fields.name)
+        .neq('id', id)
         .maybeSingle()
 
-      if (nameExists) {
+      if (existingTemplate) {
         return new Response(
           JSON.stringify({ error: 'A template with this name already exists' }),
           { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -119,7 +101,7 @@ serve(async (req) => {
     // Update the template
     const { data: updatedTemplate, error } = await supabaseClient
       .from('notification_templates')
-      .update(updateFields)
+      .update(fields)
       .eq('id', id)
       .select()
       .single()

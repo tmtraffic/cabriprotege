@@ -29,17 +29,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
 
 // Define the form schema
 const processSchema = z.object({
@@ -362,37 +356,34 @@ const ProcessCreation = () => {
                             </Select>
                           </FormControl>
                           <FormDescription>
-                            Associar um veículo é opcional, mas recomendado para processos relacionados a multas e documentação veicular.
+                            Associar um veículo é opcional, mas recomendado para processos relacionados a multas e documentações veiculares.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     
-                    {!isLoadingVehicles && vehicles.length === 0 && selectedClientId && (
-                      <div className="mt-4 flex items-center p-4 bg-yellow-50 rounded-md">
-                        <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-                        <div>
-                          <p className="text-sm font-medium">Este cliente não possui veículos cadastrados</p>
-                          <Button
-                            type="button"
-                            variant="link"
-                            className="p-0 h-auto mt-1"
-                            onClick={() => navigate(`/veiculos/novo?client_id=${selectedClientId}`)}
-                          >
-                            Cadastrar um veículo agora
-                          </Button>
-                        </div>
+                    {selectedClientId && (
+                      <div className="mt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/clientes/${selectedClientId}/veiculos/novo`)}
+                        >
+                          Cadastrar novo veículo
+                        </Button>
                       </div>
                     )}
                   </div>
                 )}
                 
-                {/* Process Details */}
+                {/* Process Type Section */}
                 <div className="border rounded-md p-4">
                   <h3 className="text-lg font-medium mb-4">Detalhes do Processo</h3>
                   
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
+                    {/* Process Type */}
                     <FormField
                       control={form.control}
                       name="process_type"
@@ -411,9 +402,6 @@ const ProcessCreation = () => {
                                 <SelectItem value="fine_appeal">Recurso de Multa</SelectItem>
                                 <SelectItem value="license_renewal">Renovação CNH</SelectItem>
                                 <SelectItem value="vehicle_registration">Registro de Veículo</SelectItem>
-                                <SelectItem value="driver_license_suspension">Suspensão CNH</SelectItem>
-                                <SelectItem value="vehicle_documentation">Documentação Veicular</SelectItem>
-                                <SelectItem value="other">Outro</SelectItem>
                               </SelectContent>
                             </Select>
                           </FormControl>
@@ -422,6 +410,26 @@ const ProcessCreation = () => {
                       )}
                     />
                     
+                    {/* Description */}
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descrição</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Descreva os detalhes do processo..."
+                              className="resize-none"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {/* Status - normally defaulted to "new" */}
                     <FormField
                       control={form.control}
                       name="status"
@@ -434,13 +442,13 @@ const ProcessCreation = () => {
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Selecione o status inicial" />
+                                <SelectValue placeholder="Selecione o status" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="new">Novo</SelectItem>
                                 <SelectItem value="in_progress">Em Andamento</SelectItem>
-                                <SelectItem value="waiting_documents">Aguardando Documentos</SelectItem>
-                                <SelectItem value="waiting_client">Aguardando Cliente</SelectItem>
+                                <SelectItem value="completed">Concluído</SelectItem>
+                                <SelectItem value="canceled">Cancelado</SelectItem>
                               </SelectContent>
                             </Select>
                           </FormControl>
@@ -448,34 +456,8 @@ const ProcessCreation = () => {
                         </FormItem>
                       )}
                     />
-                  </div>
-                  
-                  <div className="mt-4">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Descrição</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Descreva o processo, incluindo detalhes importantes..."
-                              className="min-h-[120px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                {/* Assign To User (if there are users available) */}
-                {users.length > 0 && (
-                  <div className="border rounded-md p-4">
-                    <h3 className="text-lg font-medium mb-4">Atribuição</h3>
                     
+                    {/* Assigned User */}
                     <FormField
                       control={form.control}
                       name="assigned_to_user_id"
@@ -488,7 +470,7 @@ const ProcessCreation = () => {
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Selecione um responsável (opcional)" />
+                                <SelectValue placeholder="Atribuir a um usuário (opcional)" />
                               </SelectTrigger>
                               <SelectContent>
                                 {isLoadingUsers ? (
@@ -498,7 +480,7 @@ const ProcessCreation = () => {
                                 ) : (
                                   users.map((user) => (
                                     <SelectItem key={user.id} value={user.id}>
-                                      {user.name} ({user.role === 'admin' ? 'Administrador' : 'Atendente'})
+                                      {user.name} ({user.role === "admin" ? "Administrador" : "Funcionário"})
                                     </SelectItem>
                                   ))
                                 )}
@@ -506,65 +488,28 @@ const ProcessCreation = () => {
                             </Select>
                           </FormControl>
                           <FormDescription>
-                            Atribuir um responsável é opcional. Se não selecionado, o processo ficará sem atribuição.
+                            Atribua este processo a um usuário responsável (opcional).
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                )}
+                </div>
                 
-                {/* Additional Information (Accordion) */}
-                <Accordion type="single" collapsible className="border rounded-md">
-                  <AccordionItem value="infractions">
-                    <AccordionTrigger className="px-4">Vincular Infrações</AccordionTrigger>
-                    <AccordionContent className="px-4">
-                      <p className="text-muted-foreground mb-4">
-                        Após criar o processo, você poderá vincular infrações existentes ou cadastrar novas infrações diretamente na página do processo.
-                      </p>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="deadlines">
-                    <AccordionTrigger className="px-4">Adicionar Prazos</AccordionTrigger>
-                    <AccordionContent className="px-4">
-                      <p className="text-muted-foreground mb-4">
-                        Após criar o processo, você poderá adicionar prazos importantes e configurar lembretes para acompanhamento.
-                      </p>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="documents">
-                    <AccordionTrigger className="px-4">Anexar Documentos</AccordionTrigger>
-                    <AccordionContent className="px-4">
-                      <p className="text-muted-foreground mb-4">
-                        Após criar o processo, você poderá fazer upload de documentos relacionados, como comprovantes, formulários e fotos.
-                      </p>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-              
-              {/* Form Actions */}
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => navigate("/processos")}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <LoadingSpinner className="mr-2" size="sm" />
-                      Criando...
-                    </>
-                  ) : (
-                    "Criar Processo"
-                  )}
-                </Button>
+                {/* Submit Button */}
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Criando Processo...
+                      </>
+                    ) : (
+                      "Criar Processo"
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>

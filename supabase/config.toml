@@ -92,3 +92,33 @@ external_url = ""
 # Define your Edge Functions here. This is the same as defining them in the Supabase Dashboard.
 [functions.search-clients]
 verify_jwt = true
+
+[functions.get-vehicles-by-client-id]
+verify_jwt = true
+
+[functions.create-process]
+verify_jwt = true
+
+[functions.get-process-by-id]
+verify_jwt = true
+
+[functions.update-process]
+verify_jwt = true
+
+[functions.list-all-processes]
+verify_jwt = true
+
+[functions.list-infractions-by-process-id]
+verify_jwt = true
+
+[functions.create-notification-template]
+verify_jwt = true
+
+[functions.list-notification-templates]
+verify_jwt = true
+
+[functions.update-notification-template]
+verify_jwt = true
+
+[functions.get-user-search-history]
+verify_jwt = true

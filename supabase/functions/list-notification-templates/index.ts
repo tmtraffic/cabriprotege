@@ -37,61 +37,56 @@ serve(async (req) => {
       )
     }
 
-    // Check if the user has admin or staff role
+    // Check if the user has admin role
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || !['admin', 'staff'].includes(profile.role)) {
+    if (profileError || !profile || profile.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Parse request to get type filter if exists
-    let type = null;
-    try {
-      const body = await req.json();
-      if (body && body.type) {
-        type = body.type;
-      }
-    } catch {
-      // No body or invalid JSON, continue without filter
-    }
-
-    // Fetch notification templates, filtered by type if provided
+    // Parse query parameters
+    const url = new URL(req.url)
+    const type = url.searchParams.get('type')
+    
+    // Build the query
     let query = supabaseClient
       .from('notification_templates')
       .select('*')
-      .order('name');
-
+      .order('name')
+    
+    // Apply type filter if provided
     if (type) {
-      query = query.eq('type', type);
+      query = query.eq('type', type)
     }
-
-    const { data: templates, error } = await query;
+    
+    // Execute query
+    const { data: templates, error } = await query
 
     if (error) {
-      console.error('Error fetching notification templates:', error);
+      console.error('Error fetching notification templates:', error)
       
       return new Response(
         JSON.stringify({ error: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      )
     }
 
     return new Response(
       JSON.stringify(templates || []),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal Server Error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
   }
 })

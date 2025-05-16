@@ -24,7 +24,8 @@ import {
   UserCog, 
   Plus,
   AlertTriangle,
-  Loader
+  Loader,
+  Search
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";

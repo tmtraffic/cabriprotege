@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -106,11 +105,11 @@ const ProcessCreation = () => {
       
       setIsLoadingClients(true);
       try {
+        // Fix: Using REST API directly since 'clients' table isn't in the types
         const { data, error } = await supabase
-          .from("clients")
-          .select("id, name, cpf_cnpj")
-          .or(`name.ilike.%${clientSearch}%,cpf_cnpj.ilike.%${clientSearch}%`)
-          .limit(10);
+          .rpc('search_clients', {
+            search_term: clientSearch
+          });
         
         if (error) throw error;
         setClients(data || []);
@@ -175,7 +174,7 @@ const ProcessCreation = () => {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, name, role")
-          .in("role", ["admin", "staff"])
+          .in("role", ["admin", "employee"]) // Changed 'staff' to 'employee' to match app_role enum
           .order("name");
         
         if (error) throw error;

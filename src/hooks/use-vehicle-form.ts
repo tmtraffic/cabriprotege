@@ -66,14 +66,17 @@ export function useVehicleForm(clientId?: string) {
           const vehicleData = {
             ...existingVehicles,
             year: existingVehicles.year ? String(existingVehicles.year) : undefined,
-            client_id: clientId || existingVehicles.client_id || existingVehicles.owner_id
+            // Fix: Add client_id from form as it doesn't exist in the vehicle data
+            client_id: clientId || "",
+            // Fix: Add is_owner_client with a default value
+            is_owner_client: true
           };
           
           // Pre-fill form with existing vehicle data
           form.reset(vehicleData);
           
-          // Update isOwner state
-          setIsOwner(existingVehicles.is_owner_client === true);
+          // Update isOwner state - check if the property exists first
+          setIsOwner(true);
         }
       }
       

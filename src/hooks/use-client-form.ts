@@ -105,7 +105,7 @@ export function useClientForm() {
         toast({
           title: "Aviso na consulta",
           description: apiResponse.details || "A consulta foi concluída, mas podem haver limitações nos resultados.",
-          variant: "warning"
+          variant: "default" // Changed from "warning" to "default" to fix TypeScript error
         });
       }
     } catch (error: any) {

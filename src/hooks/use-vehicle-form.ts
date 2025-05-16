@@ -62,14 +62,18 @@ export function useVehicleForm(clientId?: string) {
             description: "Esta placa já está cadastrada no sistema.",
           });
           
-          // Pre-fill form with existing vehicle data
-          form.reset({
+          // Convert year to string if it exists and is a number
+          const vehicleData = {
             ...existingVehicles,
-            is_owner_client: existingVehicles.is_owner_client ?? true
-          });
+            year: existingVehicles.year ? String(existingVehicles.year) : undefined,
+            client_id: clientId || existingVehicles.client_id || existingVehicles.owner_id
+          };
+          
+          // Pre-fill form with existing vehicle data
+          form.reset(vehicleData);
           
           // Update isOwner state
-          setIsOwner(!!existingVehicles.is_owner_client);
+          setIsOwner(existingVehicles.is_owner_client === true);
         }
       }
       

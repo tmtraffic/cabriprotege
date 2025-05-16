@@ -25,6 +25,8 @@ import { lazy, Suspense } from "react";
 const ClientRegistration = lazy(() => import("./pages/clients/ClientRegistration"));
 const VehicleRegistration = lazy(() => import("./pages/vehicles/VehicleRegistration"));
 const ProcessManagement = lazy(() => import("./pages/processes/ProcessManagement"));
+const ProcessDetail = lazy(() => import("./pages/processes/ProcessDetail"));
+const ProcessCreation = lazy(() => import("./pages/processes/ProcessCreation"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
 
@@ -82,7 +84,7 @@ const App = () => (
             </Layout>
           } />
           
-          {/* Página unificada de processos */}
+          {/* Process Management Routes */}
           <Route path="/processos" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
@@ -91,7 +93,31 @@ const App = () => (
             </Layout>
           } />
           
+          <Route path="/processos/novo" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ProcessCreation />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/processos/:processId" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ProcessDetail />
+              </Suspense>
+            </Layout>
+          } />
+          
           <Route path="/clientes" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <ClientProfile />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/clientes/:clientId" element={
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <ClientProfile />

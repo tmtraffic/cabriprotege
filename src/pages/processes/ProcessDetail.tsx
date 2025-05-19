@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,6 +37,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface Process {
   id: string;
@@ -329,11 +335,17 @@ const ProcessDetail = () => {
     if (!process?.id || !vehicle?.id) return;
     
     try {
-      // Now we can directly send process_id as part of the infraction data
+      // We're explicitly excluding process_id from the type checking with the any type above
+      // and constructing a properly typed object below
+      const payload = {
+        ...infractionData,
+        vehicle_id: vehicle.id
+      };
+      
+      // The Edge Function has been updated to handle process_id separately
       const { data, error } = await supabase.functions.invoke("create-infraction", {
         body: {
-          ...infractionData,
-          vehicle_id: vehicle.id,
+          ...payload,
           process_id: process.id
         }
       });

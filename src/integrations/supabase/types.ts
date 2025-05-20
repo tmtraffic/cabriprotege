@@ -145,6 +145,77 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          context_data: Json | null
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient: string
+          sent_at: string | null
+          status: string
+          template_id: string | null
+        }
+        Insert: {
+          context_data?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Update: {
+          context_data?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          body_template: string
+          created_at: string
+          id: string
+          name: string
+          subject_template: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          body_template: string
+          created_at?: string
+          id?: string
+          name: string
+          subject_template?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          body_template?: string
+          created_at?: string
+          id?: string
+          name?: string
+          subject_template?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       processes: {
         Row: {
           assigned_to: string | null

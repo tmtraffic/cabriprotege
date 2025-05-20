@@ -103,7 +103,7 @@ serve(async (req) => {
       }
     }
 
-    // Insert the new infraction with process_id if provided
+    // Insert the new infraction
     const insertData = {
       vehicle_id: infractionData.vehicle_id,
       process_id: infractionData.process_id, // Include process_id directly

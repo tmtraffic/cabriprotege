@@ -103,6 +103,7 @@ export type Database = {
           description: string | null
           id: string
           points: number | null
+          process_id: string | null
           status: string | null
           updated_at: string
           value: number
@@ -115,6 +116,7 @@ export type Database = {
           description?: string | null
           id?: string
           points?: number | null
+          process_id?: string | null
           status?: string | null
           updated_at?: string
           value: number
@@ -127,6 +129,7 @@ export type Database = {
           description?: string | null
           id?: string
           points?: number | null
+          process_id?: string | null
           status?: string | null
           updated_at?: string
           value?: number

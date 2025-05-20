@@ -44,13 +44,13 @@ DROP POLICY IF EXISTS notification_logs_insert_policy ON public.notification_log
 DROP POLICY IF EXISTS notification_logs_update_policy ON public.notification_logs;
 
 -- Create policies for notification_templates
--- Admin and staff can read templates
+-- Admin and employee can read templates
 CREATE POLICY notification_templates_select_policy ON public.notification_templates 
     FOR SELECT TO authenticated 
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles 
-            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'staff')
+            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'employee')
         )
     );
 
@@ -83,33 +83,33 @@ CREATE POLICY notification_templates_delete_policy ON public.notification_templa
     );
 
 -- Create policies for notification_logs
--- Admin and staff can see all notification logs
+-- Admin and employee can see all notification logs
 CREATE POLICY notification_logs_select_policy ON public.notification_logs 
     FOR SELECT TO authenticated 
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles 
-            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'staff')
+            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'employee')
         )
     );
 
--- Admin and staff can insert notification logs
+-- Admin and employee can insert notification logs
 CREATE POLICY notification_logs_insert_policy ON public.notification_logs 
     FOR INSERT TO authenticated 
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.profiles 
-            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'staff')
+            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'employee')
         )
     );
 
--- Admin and staff can update notification logs
+-- Admin and employee can update notification logs
 CREATE POLICY notification_logs_update_policy ON public.notification_logs 
     FOR UPDATE TO authenticated 
     USING (
         EXISTS (
             SELECT 1 FROM public.profiles 
-            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'staff')
+            WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'employee')
         )
     );
 

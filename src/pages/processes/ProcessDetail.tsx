@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -335,19 +334,15 @@ const ProcessDetail = () => {
     if (!process?.id || !vehicle?.id) return;
     
     try {
-      // We're explicitly excluding process_id from the type checking with the any type above
-      // and constructing a properly typed object below
-      const payload = {
+      // Using any type to temporarily work around TypeScript issues
+      const payload: any = {
         ...infractionData,
-        vehicle_id: vehicle.id
+        vehicle_id: vehicle.id,
+        process_id: process.id
       };
       
-      // The Edge Function has been updated to handle process_id separately
       const { data, error } = await supabase.functions.invoke("create-infraction", {
-        body: {
-          ...payload,
-          process_id: process.id
-        }
+        body: payload
       });
       
       if (error) throw new Error(error.message);

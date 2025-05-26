@@ -95,6 +95,60 @@ export type Database = {
         }
         Relationships: []
       }
+      infosimples_searches: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          response_data: Json | null
+          search_params: Json
+          search_type: string
+          status: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          response_data?: Json | null
+          search_params: Json
+          search_type: string
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          response_data?: Json | null
+          search_params?: Json
+          search_type?: string
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infosimples_searches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infosimples_searches_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infractions: {
         Row: {
           auto_number: string | null

@@ -29,6 +29,7 @@ const ProcessDetail = lazy(() => import("./pages/processes/ProcessDetail"));
 const ProcessCreation = lazy(() => import("./pages/processes/ProcessCreation"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
+const InfosimplesSearch = lazy(() => import("./pages/searches/InfosimplesSearch"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -155,6 +156,14 @@ const App = () => (
           <Route path="/usuarios" element={
             <Layout userRole="admin">
               <UserManagement />
+            </Layout>
+          } />
+          
+          <Route path="/consultas/infosimples" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <InfosimplesSearch />
+              </Suspense>
             </Layout>
           } />
           

@@ -1,370 +1,503 @@
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Car, FileText, CreditCard, Search, AlertCircle } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
-import { Search } from "lucide-react";
+export default function InfosimplesSearch() {
+  const { toast } = useToast()
+  const [activeTab, setActiveTab] = useState("vehicle_fines")
+  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState<any>(null)
+  
+  // Estados para cada tipo de busca
+  const [vehiclePlate, setVehiclePlate] = useState("")
+  const [vehicleRenavam, setVehicleRenavam] = useState("")
+  const [driverCpf, setDriverCpf] = useState("")
 
-// Validation schemas
-const finesSchema = z.object({
-  searchType: z.enum(["placa", "renavam"]),
-  value: z.string().min(1, "Campo obrigatório"),
-});
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1')
+  }
 
-const cnhSchema = z.object({
-  searchType: z.enum(["cnh", "cpf"]),
-  value: z.string().min(1, "Campo obrigatório"),
-  birthDate: z.string().min(1, "Data de nascimento é obrigatória"),
-});
+  const formatPlate = (value: string) => {
+    return value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .substring(0, 7)
+  }
 
-const crlvSchema = z.object({
-  searchType: z.enum(["placa", "renavam"]),
-  value: z.string().min(1, "Campo obrigatório"),
-});
+  const handleVehicleFinesSearch = async () => {
+    if (!vehiclePlate && !vehicleRenavam) {
+      toast({
+        title: "Dados necessários",
+        description: "Informe a placa ou RENAVAM do veículo",
+        variant: "destructive"
+      })
+      return
+    }
 
-type FinesFormData = z.infer<typeof finesSchema>;
-type CNHFormData = z.infer<typeof cnhSchema>;
-type CRLVFormData = z.infer<typeof crlvSchema>;
+    setLoading(true)
+    setResults(null)
 
-const InfosimplesSearch = () => {
-  const [activeTab, setActiveTab] = useState("fines");
+    try {
+      // Tentar usar a Edge Function se existir
+      const { data, error } = await supabase.functions.invoke('consult-infosimples-vehicle-fines', {
+        body: { 
+          plate: vehiclePlate || null,
+          renavam: vehicleRenavam || null
+        }
+      })
 
-  // Form instances
-  const finesForm = useForm<FinesFormData>({
-    resolver: zodResolver(finesSchema),
-    defaultValues: {
-      searchType: "placa",
-      value: "",
-    },
-  });
+      if (error) throw error
 
-  const cnhForm = useForm<CNHFormData>({
-    resolver: zodResolver(cnhSchema),
-    defaultValues: {
-      searchType: "cnh",
-      value: "",
-      birthDate: "",
-    },
-  });
+      setResults(data)
+      
+      if (data.success) {
+        toast({
+          title: "Consulta realizada",
+          description: `Encontradas ${data.data.total_fines} multas`,
+        })
+      }
+    } catch (error: any) {
+      console.error('Error:', error)
+      
+      // Se a Edge Function não existir, usar dados mockados
+      if (error.message?.includes('not found') || error.message?.includes('404')) {
+        // Simular delay
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        // Dados mockados
+        const mockData = {
+          success: true,
+          data: {
+            plate: vehiclePlate || "ABC1234",
+            fines: [
+              {
+                auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                description: "Estacionar em local proibido",
+                date: "2024-03-15",
+                value: 195.23,
+                points: 4,
+                status: "pending",
+                location: "Rua das Flores, 123 - Centro"
+              },
+              {
+                auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                description: "Velocidade acima da permitida",
+                date: "2024-02-28",
+                value: 293.47,
+                points: 5,
+                status: "pending",
+                location: "Av. Brasil, KM 45"
+              }
+            ],
+            total_fines: 2,
+            total_value: 488.70,
+            total_points: 9
+          }
+        }
+        
+        setResults(mockData)
+        toast({
+          title: "Consulta realizada (Modo Demo)",
+          description: "Mostrando dados de exemplo",
+        })
+      } else {
+        toast({
+          title: "Erro na consulta",
+          description: error.message || "Não foi possível realizar a consulta",
+          variant: "destructive"
+        })
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const crlvForm = useForm<CRLVFormData>({
-    resolver: zodResolver(crlvSchema),
-    defaultValues: {
-      searchType: "placa",
-      value: "",
-    },
-  });
+  const handleDriverCnhSearch = async () => {
+    if (!driverCpf) {
+      toast({
+        title: "CPF necessário",
+        description: "Informe o CPF do condutor",
+        variant: "destructive"
+      })
+      return
+    }
 
-  // Form handlers
-  const onFinesSubmit = (data: FinesFormData) => {
-    console.log("Consulta de multas:", data);
-    toast({
-      title: "Funcionalidade em implementação",
-      description: `Consulta de multas por ${data.searchType}: ${data.value}`,
-    });
-  };
+    setLoading(true)
+    setResults(null)
 
-  const onCNHSubmit = (data: CNHFormData) => {
-    console.log("Consulta CNH:", data);
-    toast({
-      title: "Funcionalidade em implementação",
-      description: `Consulta CNH por ${data.searchType}: ${data.value}`,
-    });
-  };
+    try {
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Dados mockados diretamente (já que a Edge Function está com problema)
+      const mockData = {
+        success: true,
+        search_id: "mock-" + Date.now(),
+        data: {
+          cpf: driverCpf.replace(/\D/g, ''),
+          cnh: {
+            number: "12345678900",
+            category: "AB",
+            issue_date: "2020-03-15",
+            expiration_date: "2025-03-15",
+            first_license_date: "2015-06-20",
+            status: "valid",
+            points: 12,
+            infractions: [
+              {
+                date: "2024-01-15",
+                description: "Dirigir veículo utilizando telefone celular",
+                points: 4
+              }
+            ]
+          }
+        }
+      }
 
-  const onCRLVSubmit = (data: CRLVFormData) => {
-    console.log("Consulta CRLV:", data);
-    toast({
-      title: "Funcionalidade em implementação",
-      description: `Consulta CRLV por ${data.searchType}: ${data.value}`,
-    });
-  };
+      setResults(mockData)
+      
+      toast({
+        title: "Consulta realizada (Modo Demo)",
+        description: "Mostrando dados de exemplo",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Erro na consulta",
+        description: error.message || "Não foi possível realizar a consulta",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderVehicleFinesResults = () => {
+    if (!results?.data) return null
+
+    const { fines, total_value, total_points } = results.data
+
+    return (
+      <div className="space-y-4 mt-6">
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Modo demonstração: Estes são dados de exemplo. Na versão final, serão dados reais da API Infosimples.
+          </AlertDescription>
+        </Alert>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total de Multas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{fines.length}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">R$ {total_value.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Pontos na CNH</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{total_points}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold">Detalhes das Infrações</h3>
+          {fines.map((fine: any, index: number) => (
+            <Card key={index}>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="space-y-1">
+                    <p className="font-medium">{fine.auto_number}</p>
+                    <p className="text-sm text-muted-foreground">{fine.description}</p>
+                    <p className="text-xs text-muted-foreground">{fine.location}</p>
+                  </div>
+                  <Badge variant={fine.status === 'pending' ? 'destructive' : 'secondary'}>
+                    {fine.status === 'pending' ? 'Pendente' : 'Pago'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                  <div className="flex items-center gap-4 text-sm">
+                    <span>Data: {format(new Date(fine.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    <span>{fine.points} pontos</span>
+                  </div>
+                  <p className="font-semibold">R$ {fine.value.toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCnhResults = () => {
+    if (!results?.data?.cnh) return null
+
+    const { cnh } = results.data
+
+    return (
+      <div className="space-y-4 mt-6">
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Modo demonstração: Estes são dados de exemplo. Na versão final, serão dados reais da API Infosimples.
+          </AlertDescription>
+        </Alert>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados da CNH</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground">Número</Label>
+                <p className="font-medium">{cnh.number}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Categoria</Label>
+                <p className="font-medium">{cnh.category}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Data de Emissão</Label>
+                <p className="font-medium">{format(new Date(cnh.issue_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Validade</Label>
+                <p className="font-medium">{format(new Date(cnh.expiration_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Primeira Habilitação</Label>
+                <p className="font-medium">{format(new Date(cnh.first_license_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Pontos Disponíveis</Label>
+                <p className="font-medium">{cnh.points} pontos</p>
+              </div>
+            </div>
+
+            {cnh.infractions && cnh.infractions.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="font-semibold mb-3">Infrações Registradas</h4>
+                <div className="space-y-2">
+                  {cnh.infractions.map((infraction: any, index: number) => (
+                    <Alert key={index}>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <span className="font-medium">{format(new Date(infraction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        {" - "}
+                        {infraction.description}
+                        {" - "}
+                        <span className="font-medium">{infraction.points} pontos</span>
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 px-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Consultas Infosimples</h1>
-        <p className="text-gray-600 mt-2">
-          Realize consultas de multas, CNH e CRLV através da API Infosimples
+        <h1 className="text-3xl font-bold">Consultas Infosimples</h1>
+        <p className="text-muted-foreground mt-2">
+          Realize consultas de multas, CNH, CRLV e outras informações de trânsito
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Consultas Disponíveis</CardTitle>
-          <CardDescription>
-            Escolha o tipo de consulta que deseja realizar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="fines">Multas</TabsTrigger>
-              <TabsTrigger value="cnh">CNH</TabsTrigger>
-              <TabsTrigger value="crlv">CRLV</TabsTrigger>
-            </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="vehicle_fines">
+            <Car className="h-4 w-4 mr-2" />
+            Multas
+          </TabsTrigger>
+          <TabsTrigger value="driver_cnh">
+            <CreditCard className="h-4 w-4 mr-2" />
+            CNH
+          </TabsTrigger>
+          <TabsTrigger value="vehicle_crlv">
+            <FileText className="h-4 w-4 mr-2" />
+            CRLV
+          </TabsTrigger>
+          <TabsTrigger value="renavam">
+            <Search className="h-4 w-4 mr-2" />
+            RENAVAM
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Multas Tab */}
-            <TabsContent value="fines" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Consulta de Multas</CardTitle>
-                  <CardDescription>
-                    Consulte multas de trânsito por placa ou RENAVAM
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...finesForm}>
-                    <form onSubmit={finesForm.handleSubmit(onFinesSubmit)} className="space-y-6">
-                      <FormField
-                        control={finesForm.control}
-                        name="searchType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Busca</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-4">
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="placa"
-                                    checked={field.value === "placa"}
-                                    onChange={() => field.onChange("placa")}
-                                  />
-                                  Placa
-                                </label>
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="renavam"
-                                    checked={field.value === "renavam"}
-                                    onChange={() => field.onChange("renavam")}
-                                  />
-                                  RENAVAM
-                                </label>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+        <TabsContent value="vehicle_fines">
+          <Card>
+            <CardHeader>
+              <CardTitle>Consulta de Multas</CardTitle>
+              <CardDescription>
+                Busque multas de veículos por placa ou RENAVAM
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="plate">Placa do Veículo</Label>
+                  <Input
+                    id="plate"
+                    placeholder="ABC1234"
+                    value={vehiclePlate}
+                    onChange={(e) => setVehiclePlate(formatPlate(e.target.value))}
+                    className="uppercase"
+                    maxLength={7}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="renavam">RENAVAM</Label>
+                  <Input
+                    id="renavam"
+                    placeholder="00000000000"
+                    value={vehicleRenavam}
+                    onChange={(e) => setVehicleRenavam(e.target.value.replace(/\D/g, ''))}
+                    maxLength={11}
+                  />
+                </div>
+              </div>
+              <div className="mt-6">
+                <Button 
+                  onClick={handleVehicleFinesSearch} 
+                  disabled={loading}
+                  className="w-full md:w-auto"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Consultando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Consultar Multas
+                    </>
+                  )}
+                </Button>
+              </div>
 
-                      <FormField
-                        control={finesForm.control}
-                        name="value"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {finesForm.watch("searchType") === "placa" ? "Placa" : "RENAVAM"}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={
-                                  finesForm.watch("searchType") === "placa"
-                                    ? "Ex: ABC1234"
-                                    : "Ex: 123456789"
-                                }
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              {results && renderVehicleFinesResults()}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                      <Button type="submit" className="w-full">
-                        <Search className="mr-2 h-4 w-4" />
-                        Consultar Multas
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
+        <TabsContent value="driver_cnh">
+          <Card>
+            <CardHeader>
+              <CardTitle>Consulta de CNH</CardTitle>
+              <CardDescription>
+                Verifique dados e situação da CNH por CPF
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label htmlFor="cpf">CPF do Condutor</Label>
+                <Input
+                  id="cpf"
+                  placeholder="000.000.000-00"
+                  value={driverCpf}
+                  onChange={(e) => setDriverCpf(formatCPF(e.target.value))}
+                  maxLength={14}
+                />
+              </div>
+              <div className="mt-6">
+                <Button 
+                  onClick={handleDriverCnhSearch} 
+                  disabled={loading}
+                  className="w-full md:w-auto"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Consultando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Consultar CNH
+                    </>
+                  )}
+                </Button>
+              </div>
 
-            {/* CNH Tab */}
-            <TabsContent value="cnh" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Consulta de CNH</CardTitle>
-                  <CardDescription>
-                    Consulte informações da CNH por número ou CPF
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...cnhForm}>
-                    <form onSubmit={cnhForm.handleSubmit(onCNHSubmit)} className="space-y-6">
-                      <FormField
-                        control={cnhForm.control}
-                        name="searchType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Busca</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-4">
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="cnh"
-                                    checked={field.value === "cnh"}
-                                    onChange={() => field.onChange("cnh")}
-                                  />
-                                  Número da CNH
-                                </label>
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="cpf"
-                                    checked={field.value === "cpf"}
-                                    onChange={() => field.onChange("cpf")}
-                                  />
-                                  CPF
-                                </label>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              {results && renderCnhResults()}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                      <FormField
-                        control={cnhForm.control}
-                        name="value"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {cnhForm.watch("searchType") === "cnh" ? "Número da CNH" : "CPF"}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={
-                                  cnhForm.watch("searchType") === "cnh"
-                                    ? "Ex: 12345678901"
-                                    : "Ex: 123.456.789-01"
-                                }
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+        <TabsContent value="vehicle_crlv">
+          <Card>
+            <CardHeader>
+              <CardTitle>Consulta de CRLV</CardTitle>
+              <CardDescription>
+                Verifique o documento de registro e licenciamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Esta funcionalidade será implementada em breve
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                      <FormField
-                        control={cnhForm.control}
-                        name="birthDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Data de Nascimento</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button type="submit" className="w-full">
-                        <Search className="mr-2 h-4 w-4" />
-                        Consultar CNH
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* CRLV Tab */}
-            <TabsContent value="crlv" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Consulta de CRLV</CardTitle>
-                  <CardDescription>
-                    Consulte informações do CRLV por placa ou RENAVAM
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...crlvForm}>
-                    <form onSubmit={crlvForm.handleSubmit(onCRLVSubmit)} className="space-y-6">
-                      <FormField
-                        control={crlvForm.control}
-                        name="searchType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Busca</FormLabel>
-                            <FormControl>
-                              <div className="flex gap-4">
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="placa"
-                                    checked={field.value === "placa"}
-                                    onChange={() => field.onChange("placa")}
-                                  />
-                                  Placa
-                                </label>
-                                <label className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    value="renavam"
-                                    checked={field.value === "renavam"}
-                                    onChange={() => field.onChange("renavam")}
-                                  />
-                                  RENAVAM
-                                </label>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={crlvForm.control}
-                        name="value"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {crlvForm.watch("searchType") === "placa" ? "Placa" : "RENAVAM"}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={
-                                  crlvForm.watch("searchType") === "placa"
-                                    ? "Ex: ABC1234"
-                                    : "Ex: 123456789"
-                                }
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button type="submit" className="w-full">
-                        <Search className="mr-2 h-4 w-4" />
-                        Consultar CRLV
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        <TabsContent value="renavam">
+          <Card>
+            <CardHeader>
+              <CardTitle>Consulta por RENAVAM</CardTitle>
+              <CardDescription>
+                Busque informações completas do veículo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Esta funcionalidade será implementada em breve
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
-  );
-};
-
-export default InfosimplesSearch;
+  )
+}

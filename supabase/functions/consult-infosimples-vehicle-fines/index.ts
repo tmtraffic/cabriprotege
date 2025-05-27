@@ -31,11 +31,14 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser()
 
     if (!user) {
+      console.log('User not authenticated')
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('User authenticated:', user.id)
 
     // Get the request body
     const requestData = await req.json()
@@ -105,15 +108,30 @@ serve(async (req) => {
 
     // Log search to search_history table
     try {
-      await supabaseClient.from('search_history').insert({
+      console.log('Saving to search_history table...')
+      
+      const searchHistoryData = {
         user_id: user.id,
         search_query: searchQuery,
-        search_type: searchType,
+        search_type: 'vehicle_fines',
         api_source: 'infosimples_vehicle_fines',
         raw_result_data: apiResponse,
         related_client_id: client_id || null,
         related_vehicle_id: vehicle_id || null
-      })
+      }
+
+      console.log('Search history data:', searchHistoryData)
+
+      const { data: insertData, error: insertError } = await supabaseClient
+        .from('search_history')
+        .insert(searchHistoryData)
+
+      if (insertError) {
+        console.error('Error saving to search_history:', insertError)
+        // Continue with the response even if logging fails
+      } else {
+        console.log('Successfully saved to search_history')
+      }
     } catch (error) {
       console.error('Error logging search history:', error)
       // Continue with the response even if logging fails

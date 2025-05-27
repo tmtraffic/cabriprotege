@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,6 +38,39 @@ export default function InfosimplesSearch() {
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '')
       .substring(0, 7)
+  }
+
+  const saveToSearchHistory = async (searchData: any, resultData: any, searchType: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        console.log('User not authenticated for search history')
+        return
+      }
+
+      const historyData = {
+        user_id: user.id,
+        search_query: searchData.plate || searchData.renavam || searchData.cpf,
+        search_type: searchType,
+        api_source: 'infosimples_frontend',
+        raw_result_data: resultData,
+        related_client_id: null,
+        related_vehicle_id: null
+      }
+
+      const { error } = await supabase
+        .from('search_history')
+        .insert(historyData)
+
+      if (error) {
+        console.error('Error saving search history:', error)
+      } else {
+        console.log('Search history saved successfully')
+      }
+    } catch (error) {
+      console.error('Error in saveToSearchHistory:', error)
+    }
   }
 
   const handleVehicleFinesSearch = async () => {
@@ -112,6 +146,14 @@ export default function InfosimplesSearch() {
       }
       
       setResults(mockData)
+      
+      // Salvar dados mockados no histórico
+      await saveToSearchHistory(
+        { plate: vehiclePlate, renavam: vehicleRenavam },
+        mockData,
+        'vehicle_fines'
+      )
+      
       toast({
         title: "Consulta realizada (Modo Demo)",
         description: "Mostrando dados de exemplo",
@@ -164,6 +206,13 @@ export default function InfosimplesSearch() {
       }
 
       setResults(mockData)
+      
+      // Salvar dados mockados no histórico
+      await saveToSearchHistory(
+        { cpf: driverCpf },
+        mockData,
+        'driver_cnh'
+      )
       
       toast({
         title: "Consulta realizada (Modo Demo)",

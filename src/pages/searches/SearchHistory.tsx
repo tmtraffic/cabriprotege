@@ -19,14 +19,28 @@ export default function SearchHistory() {
 
   const fetchSearchHistory = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        toast({
+          title: "Não autenticado",
+          description: "Você precisa estar logado para ver o histórico",
+          variant: "destructive"
+        })
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
-        .from('infosimples_searches')
+        .from('search_history')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50)
 
       if (error) throw error
 
+      console.log('Search history data:', data)
       setSearches(data || [])
     } catch (error) {
       console.error('Error fetching search history:', error)
@@ -63,15 +77,28 @@ export default function SearchHistory() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'success':
-        return <Badge className="bg-green-100 text-green-800">Sucesso</Badge>
-      case 'error':
-        return <Badge variant="destructive">Erro</Badge>
-      default:
-        return <Badge variant="secondary">Pendente</Badge>
+  const getStatusBadge = (resultData: any) => {
+    if (resultData && resultData.success) {
+      return <Badge className="bg-green-100 text-green-800">Sucesso</Badge>
+    } else if (resultData && resultData.error) {
+      return <Badge variant="destructive">Erro</Badge>
+    } else {
+      return <Badge variant="secondary">Pendente</Badge>
     }
+  }
+
+  const getResultSummary = (search: any) => {
+    if (!search.raw_result_data) return "Sem dados"
+    
+    const data = search.raw_result_data
+    
+    if (search.search_type === 'vehicle_fines' && data.data && data.data.fines) {
+      return `${data.data.fines.length} multa(s) encontrada(s)`
+    } else if (search.search_type === 'driver_cnh' && data.data && data.data.cnh) {
+      return `CNH categoria ${data.data.cnh.category} - ${data.data.cnh.points} pontos`
+    }
+    
+    return "Consulta realizada"
   }
 
   if (loading) {
@@ -111,7 +138,7 @@ export default function SearchHistory() {
                       {getSearchTypeLabel(search.search_type)}
                     </CardTitle>
                   </div>
-                  {getStatusBadge(search.status)}
+                  {getStatusBadge(search.raw_result_data)}
                 </div>
                 <CardDescription>
                   <div className="flex items-center gap-2 mt-1">
@@ -121,10 +148,20 @@ export default function SearchHistory() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
-                  <p>Parâmetros: {JSON.stringify(search.search_params)}</p>
-                  {search.error_message && (
-                    <p className="text-red-600 mt-2">Erro: {search.error_message}</p>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium">Consulta: </span>
+                    {search.search_query}
+                  </div>
+                  <div>
+                    <span className="font-medium">Resultado: </span>
+                    <span className="text-muted-foreground">{getResultSummary(search)}</span>
+                  </div>
+                  {search.api_source && (
+                    <div>
+                      <span className="font-medium">Fonte: </span>
+                      <span className="text-muted-foreground">{search.api_source}</span>
+                    </div>
                   )}
                 </div>
               </CardContent>

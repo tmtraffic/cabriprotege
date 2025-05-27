@@ -361,34 +361,49 @@ export type Database = {
       search_history: {
         Row: {
           created_at: string
+          created_by: string | null
+          error_message: string | null
           id: string
           related_client_id: string | null
           related_vehicle_id: string | null
+          response_data: Json | null
           result_data: Json | null
+          search_params: Json | null
           search_query: string
           search_type: string
+          status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          error_message?: string | null
           id?: string
           related_client_id?: string | null
           related_vehicle_id?: string | null
+          response_data?: Json | null
           result_data?: Json | null
+          search_params?: Json | null
           search_query: string
           search_type: string
+          status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          error_message?: string | null
           id?: string
           related_client_id?: string | null
           related_vehicle_id?: string | null
+          response_data?: Json | null
           result_data?: Json | null
+          search_params?: Json | null
           search_query?: string
           search_type?: string
+          status?: string | null
           updated_at?: string
           user_id?: string
         }

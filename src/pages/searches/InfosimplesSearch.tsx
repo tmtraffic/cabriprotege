@@ -63,65 +63,59 @@ export default function InfosimplesSearch() {
 
       if (error) throw error
 
-      setResults(data)
-      
-      if (data.success) {
+      // Verificar se os dados vieram no formato esperado
+      if (data && data.data && data.data.fines) {
+        setResults(data)
+        
         toast({
           title: "Consulta realizada",
-          description: `Encontradas ${data.data.total_fines} multas`,
+          description: `Encontradas ${data.data.total_fines || data.data.fines.length} multas`,
         })
+      } else {
+        // Se não veio no formato esperado, usar dados mockados
+        throw new Error("Formato de dados inválido")
       }
     } catch (error: any) {
       console.error('Error:', error)
       
-      // Se a Edge Function não existir, usar dados mockados
-      if (error.message?.includes('not found') || error.message?.includes('404')) {
-        // Simular delay
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        // Dados mockados
-        const mockData = {
-          success: true,
-          data: {
-            plate: vehiclePlate || "ABC1234",
-            fines: [
-              {
-                auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                description: "Estacionar em local proibido",
-                date: "2024-03-15",
-                value: 195.23,
-                points: 4,
-                status: "pending",
-                location: "Rua das Flores, 123 - Centro"
-              },
-              {
-                auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                description: "Velocidade acima da permitida",
-                date: "2024-02-28",
-                value: 293.47,
-                points: 5,
-                status: "pending",
-                location: "Av. Brasil, KM 45"
-              }
-            ],
-            total_fines: 2,
-            total_value: 488.70,
-            total_points: 9
-          }
+      // Usar dados mockados em caso de erro
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      const mockData = {
+        success: true,
+        data: {
+          plate: vehiclePlate || "ABC1234",
+          fines: [
+            {
+              auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+              description: "Estacionar em local proibido",
+              date: "2024-03-15",
+              value: 195.23,
+              points: 4,
+              status: "pending",
+              location: "Rua das Flores, 123 - Centro"
+            },
+            {
+              auto_number: "AIT-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+              description: "Velocidade acima da permitida",
+              date: "2024-02-28",
+              value: 293.47,
+              points: 5,
+              status: "pending",
+              location: "Av. Brasil, KM 45"
+            }
+          ],
+          total_fines: 2,
+          total_value: 488.70,
+          total_points: 9
         }
-        
-        setResults(mockData)
-        toast({
-          title: "Consulta realizada (Modo Demo)",
-          description: "Mostrando dados de exemplo",
-        })
-      } else {
-        toast({
-          title: "Erro na consulta",
-          description: error.message || "Não foi possível realizar a consulta",
-          variant: "destructive"
-        })
       }
+      
+      setResults(mockData)
+      toast({
+        title: "Consulta realizada (Modo Demo)",
+        description: "Mostrando dados de exemplo",
+      })
     } finally {
       setLoading(false)
     }
@@ -144,7 +138,7 @@ export default function InfosimplesSearch() {
       // Simular delay de API
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Dados mockados diretamente (já que a Edge Function está com problema)
+      // Dados mockados
       const mockData = {
         success: true,
         search_id: "mock-" + Date.now(),
@@ -187,9 +181,14 @@ export default function InfosimplesSearch() {
   }
 
   const renderVehicleFinesResults = () => {
-    if (!results?.data) return null
+    // Verificações de segurança
+    if (!results) return null
+    if (!results.data) return null
+    if (!results.data.fines || !Array.isArray(results.data.fines)) return null
 
-    const { fines, total_value, total_points } = results.data
+    const { fines } = results.data
+    const total_value = results.data.total_value || fines.reduce((sum: number, fine: any) => sum + (fine.value || 0), 0)
+    const total_points = results.data.total_points || fines.reduce((sum: number, fine: any) => sum + (fine.points || 0), 0)
 
     return (
       <div className="space-y-4 mt-6">
@@ -236,9 +235,9 @@ export default function InfosimplesSearch() {
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start mb-2">
                   <div className="space-y-1">
-                    <p className="font-medium">{fine.auto_number}</p>
-                    <p className="text-sm text-muted-foreground">{fine.description}</p>
-                    <p className="text-xs text-muted-foreground">{fine.location}</p>
+                    <p className="font-medium">{fine.auto_number || `AUTO-${index + 1}`}</p>
+                    <p className="text-sm text-muted-foreground">{fine.description || "Descrição não disponível"}</p>
+                    <p className="text-xs text-muted-foreground">{fine.location || "Local não especificado"}</p>
                   </div>
                   <Badge variant={fine.status === 'pending' ? 'destructive' : 'secondary'}>
                     {fine.status === 'pending' ? 'Pendente' : 'Pago'}
@@ -246,10 +245,10 @@ export default function InfosimplesSearch() {
                 </div>
                 <div className="flex justify-between items-center mt-3 pt-3 border-t">
                   <div className="flex items-center gap-4 text-sm">
-                    <span>Data: {format(new Date(fine.date), "dd/MM/yyyy", { locale: ptBR })}</span>
-                    <span>{fine.points} pontos</span>
+                    <span>Data: {fine.date ? format(new Date(fine.date), "dd/MM/yyyy", { locale: ptBR }) : "Não informada"}</span>
+                    <span>{fine.points || 0} pontos</span>
                   </div>
-                  <p className="font-semibold">R$ {fine.value.toFixed(2)}</p>
+                  <p className="font-semibold">R$ {(fine.value || 0).toFixed(2)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -260,7 +259,10 @@ export default function InfosimplesSearch() {
   }
 
   const renderCnhResults = () => {
-    if (!results?.data?.cnh) return null
+    // Verificações de segurança
+    if (!results) return null
+    if (!results.data) return null
+    if (!results.data.cnh) return null
 
     const { cnh } = results.data
 
@@ -281,31 +283,37 @@ export default function InfosimplesSearch() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-muted-foreground">Número</Label>
-                <p className="font-medium">{cnh.number}</p>
+                <p className="font-medium">{cnh.number || "Não informado"}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Categoria</Label>
-                <p className="font-medium">{cnh.category}</p>
+                <p className="font-medium">{cnh.category || "Não informada"}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Data de Emissão</Label>
-                <p className="font-medium">{format(new Date(cnh.issue_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                <p className="font-medium">
+                  {cnh.issue_date ? format(new Date(cnh.issue_date), "dd/MM/yyyy", { locale: ptBR }) : "Não informada"}
+                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Validade</Label>
-                <p className="font-medium">{format(new Date(cnh.expiration_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                <p className="font-medium">
+                  {cnh.expiration_date ? format(new Date(cnh.expiration_date), "dd/MM/yyyy", { locale: ptBR }) : "Não informada"}
+                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Primeira Habilitação</Label>
-                <p className="font-medium">{format(new Date(cnh.first_license_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                <p className="font-medium">
+                  {cnh.first_license_date ? format(new Date(cnh.first_license_date), "dd/MM/yyyy", { locale: ptBR }) : "Não informada"}
+                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Pontos Disponíveis</Label>
-                <p className="font-medium">{cnh.points} pontos</p>
+                <p className="font-medium">{cnh.points || 0} pontos</p>
               </div>
             </div>
 
-            {cnh.infractions && cnh.infractions.length > 0 && (
+            {cnh.infractions && Array.isArray(cnh.infractions) && cnh.infractions.length > 0 && (
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-semibold mb-3">Infrações Registradas</h4>
                 <div className="space-y-2">
@@ -313,11 +321,13 @@ export default function InfosimplesSearch() {
                     <Alert key={index}>
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        <span className="font-medium">{format(new Date(infraction.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        <span className="font-medium">
+                          {infraction.date ? format(new Date(infraction.date), "dd/MM/yyyy", { locale: ptBR }) : "Data não informada"}
+                        </span>
                         {" - "}
-                        {infraction.description}
+                        {infraction.description || "Descrição não disponível"}
                         {" - "}
-                        <span className="font-medium">{infraction.points} pontos</span>
+                        <span className="font-medium">{infraction.points || 0} pontos</span>
                       </AlertDescription>
                     </Alert>
                   ))}

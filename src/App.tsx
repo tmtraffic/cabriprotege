@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,6 +29,7 @@ const ProcessCreation = lazy(() => import("./pages/processes/ProcessCreation"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
 const InfosimplesSearch = lazy(() => import("./pages/searches/InfosimplesSearch"));
+const SearchHistory = lazy(() => import("./pages/searches/SearchHistory"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -163,6 +163,14 @@ const App = () => (
             <Layout userRole="admin">
               <Suspense fallback={<PageLoader />}>
                 <InfosimplesSearch />
+              </Suspense>
+            </Layout>
+          } />
+          
+          <Route path="/consultas/historico" element={
+            <Layout userRole="admin">
+              <Suspense fallback={<PageLoader />}>
+                <SearchHistory />
               </Suspense>
             </Layout>
           } />

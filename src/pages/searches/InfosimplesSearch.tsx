@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Car, FileText, CreditCard, Search, AlertCircle } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -181,14 +182,29 @@ export default function InfosimplesSearch() {
   }
 
   const renderVehicleFinesResults = () => {
-    // Verificações de segurança
-    if (!results) return null
-    if (!results.data) return null
-    if (!results.data.fines || !Array.isArray(results.data.fines)) return null
+    // Verificações de segurança mais robustas
+    if (!results) {
+      console.log('No results')
+      return null
+    }
+    if (!results.data) {
+      console.log('No results.data')
+      return null
+    }
+    if (!results.data.fines) {
+      console.log('No results.data.fines')
+      return null
+    }
+    if (!Array.isArray(results.data.fines)) {
+      console.log('results.data.fines is not an array:', typeof results.data.fines)
+      return null
+    }
 
     const { fines } = results.data
-    const total_value = results.data.total_value || fines.reduce((sum: number, fine: any) => sum + (fine.value || 0), 0)
-    const total_points = results.data.total_points || fines.reduce((sum: number, fine: any) => sum + (fine.points || 0), 0)
+    
+    // Cálculos seguros com verificação adicional
+    const total_value = results.data.total_value || (Array.isArray(fines) ? fines.reduce((sum: number, fine: any) => sum + (fine.value || 0), 0) : 0)
+    const total_points = results.data.total_points || (Array.isArray(fines) ? fines.reduce((sum: number, fine: any) => sum + (fine.points || 0), 0) : 0)
 
     return (
       <div className="space-y-4 mt-6">

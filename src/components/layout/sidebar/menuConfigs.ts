@@ -13,6 +13,7 @@ import {
   UserCheck,
   Import,
   MessageSquare,
+  Clock,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -92,6 +93,16 @@ export const employeeMenuItems: MenuItem[] = [
 // Admin-specific menu items
 export const adminMenuItems: MenuItem[] = [
   ...employeeMenuItems,
+  {
+    title: "Consultas Infosimples",
+    icon: Search,
+    href: "/consultas/infosimples",
+  },
+  {
+    title: "Histórico de Consultas",
+    icon: Clock,
+    href: "/consultas/historico",
+  },
   {
     title: "Usuários",
     icon: Users,

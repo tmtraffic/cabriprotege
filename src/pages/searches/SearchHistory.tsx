@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -83,14 +82,14 @@ export default function SearchHistory() {
     } else if (resultData && resultData.error) {
       return <Badge variant="destructive">Erro</Badge>
     } else {
-      return <Badge variant="secondary">Pendente</Badge>
+      return <Badge variant="secondary">Demo</Badge>
     }
   }
 
   const getResultSummary = (search: any) => {
-    if (!search.raw_result_data) return "Sem dados"
-    
-    const data = search.raw_result_data
+    // Usar result_data ao invés de raw_result_data
+    const data = search.result_data || search.response_data
+    if (!data) return "Sem dados"
     
     if (search.search_type === 'vehicle_fines' && data.data && data.data.fines) {
       return `${data.data.fines.length} multa(s) encontrada(s)`
@@ -138,7 +137,7 @@ export default function SearchHistory() {
                       {getSearchTypeLabel(search.search_type)}
                     </CardTitle>
                   </div>
-                  {getStatusBadge(search.raw_result_data)}
+                  {getStatusBadge(search.result_data || search.response_data)}
                 </div>
                 <CardDescription>
                   <div className="flex items-center gap-2 mt-1">
@@ -157,12 +156,6 @@ export default function SearchHistory() {
                     <span className="font-medium">Resultado: </span>
                     <span className="text-muted-foreground">{getResultSummary(search)}</span>
                   </div>
-                  {search.api_source && (
-                    <div>
-                      <span className="font-medium">Fonte: </span>
-                      <span className="text-muted-foreground">{search.api_source}</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

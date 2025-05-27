@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Car, FileText, CreditCard, Search, AlertCircle } from "lucide-react"
+import { Loader2, Car, FileText, CreditCard, Search, AlertCircle, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { format } from "date-fns"
@@ -359,10 +358,21 @@ export default function InfosimplesSearch() {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Consultas Infosimples</h1>
-        <p className="text-muted-foreground mt-2">
-          Realize consultas de multas, CNH, CRLV e outras informações de trânsito
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Consultas Infosimples</h1>
+            <p className="text-muted-foreground mt-2">
+              Realize consultas de multas, CNH, CRLV e outras informações de trânsito
+            </p>
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => window.location.href = '/consultas/historico'}
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Ver Histórico
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -19,25 +18,31 @@ export function useInfosimplesSearch() {
 
       const historyData = {
         user_id: user.id,
-        search_query: searchData.plate || searchData.renavam || searchData.cpf,
+        search_query: searchData.plate || searchData.renavam || searchData.cpf || '',
         search_type: searchType,
-        api_source: 'infosimples_frontend',
-        raw_result_data: resultData,
-        related_client_id: null,
-        related_vehicle_id: null
+        search_params: searchData,
+        result_data: resultData,  // MUDOU: era raw_result_data
+        response_data: resultData, // ADICIONADO: para compatibilidade
+        status: resultData.success ? 'success' : 'demo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
 
-      const { error } = await supabase
+      console.log('Salvando no histórico:', historyData)
+
+      const { data, error } = await supabase
         .from('search_history')
         .insert(historyData)
+        .select()
 
       if (error) {
-        console.error('Error saving search history:', error)
+        console.error('Erro ao salvar histórico:', error)
+        console.error('Detalhes:', error.details, error.message, error.hint)
       } else {
-        console.log('Search history saved successfully')
+        console.log('Histórico salvo com sucesso:', data)
       }
     } catch (error) {
-      console.error('Error in saveToSearchHistory:', error)
+      console.error('Erro em saveToSearchHistory:', error)
     }
   }
 
@@ -59,6 +64,13 @@ export function useInfosimplesSearch() {
       // Verificar se os dados vieram no formato esperado
       if (data && data.data && data.data.fines) {
         setResults(data)
+        
+        // Salvar no histórico
+        await saveToSearchHistory(
+          { plate: vehiclePlate, renavam: vehicleRenavam },
+          data,
+          'vehicle_fines'
+        )
         
         toast({
           title: "Consulta realizada",

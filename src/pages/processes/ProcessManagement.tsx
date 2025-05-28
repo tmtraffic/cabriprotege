@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   Card, 
@@ -31,6 +30,8 @@ import { Plus, Search, FileText, Filter, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { Badge } from "@/components/ui/badge";
 
 interface Process {
   id: string;
@@ -117,23 +118,18 @@ const ProcessManagement = () => {
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'new':
-      case 'novo':
-        return "bg-blue-100 text-blue-800";
-      case 'in_progress':
-      case 'em_andamento':
-        return "bg-yellow-100 text-yellow-800";
-      case 'completed':
-      case 'concluido':
-        return "bg-green-100 text-green-800";
-      case 'canceled':
-      case 'cancelado':
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      'new': 'default',
+      'novo': 'default',
+      'in_progress': 'secondary',
+      'em_andamento': 'secondary',
+      'completed': 'default',
+      'concluido': 'default',
+      'canceled': 'destructive',
+      'cancelado': 'destructive'
+    };
+    return variants[status.toLowerCase()] || 'outline';
   };
 
   const getProcessTypeDisplay = (type: string) => {
@@ -149,18 +145,136 @@ const ProcessManagement = () => {
     return types[type] || type;
   };
 
+  const columns = [
+    {
+      key: 'id',
+      label: 'ID',
+      className: 'w-[100px]',
+      render: (value: string) => (
+        <span className="font-mono text-xs">{value.substring(0, 8)}</span>
+      )
+    },
+    {
+      key: 'client',
+      label: 'Cliente',
+      render: (_: any, row: Process) => (
+        row.client ? (
+          <div>
+            <div className="font-medium">{row.client.name}</div>
+            <div className="text-xs text-muted-foreground">{row.client.cpf_cnpj}</div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
+      )
+    },
+    {
+      key: 'vehicle',
+      label: 'Veículo',
+      render: (_: any, row: Process) => (
+        row.vehicle ? (
+          <div>
+            <div className="font-medium">{row.vehicle.plate}</div>
+            <div className="text-xs text-muted-foreground">{row.vehicle.brand} {row.vehicle.model}</div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
+      )
+    },
+    {
+      key: 'process_type',
+      label: 'Tipo',
+      render: (value: string) => getProcessTypeDisplay(value)
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value: string) => (
+        <Badge variant={getStatusBadge(value)} className="text-xs">
+          {value}
+        </Badge>
+      )
+    },
+    {
+      key: 'created_at',
+      label: 'Data',
+      render: (value: string) => formatDate(value)
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      className: 'text-right',
+      render: (_: any, row: Process) => (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/processos/${row.id}`);
+          }}
+        >
+          Ver Detalhes
+        </Button>
+      )
+    }
+  ];
+
+  const mobileCardRenderer = (process: Process, index: number) => (
+    <Card key={process.id} className="cursor-pointer hover:shadow-md transition-shadow">
+      <CardContent className="p-4" onClick={() => navigate(`/processos/${process.id}`)}>
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <p className="font-medium text-sm">
+              {process.client?.name || 'Cliente não informado'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ID: {process.id.substring(0, 8)}
+            </p>
+          </div>
+          <Badge variant={getStatusBadge(process.status)} className="text-xs">
+            {process.status}
+          </Badge>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Tipo:</span>
+            <span>{getProcessTypeDisplay(process.process_type)}</span>
+          </div>
+          
+          {process.vehicle && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Veículo:</span>
+              <span>{process.vehicle.plate}</span>
+            </div>
+          )}
+          
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Data:</span>
+            <span>{formatDate(process.created_at)}</span>
+          </div>
+        </div>
+        
+        <Button variant="outline" size="sm" className="w-full mt-3">
+          Ver Detalhes
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Processos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gerenciamento de Processos</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Visualize e gerencie todos os processos
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link to="/processos/novo">
             <Plus className="h-4 w-4 mr-2" />
             Novo Processo
@@ -170,60 +284,56 @@ const ProcessManagement = () => {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>Filtros</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Filtros</CardTitle>
           <CardDescription>Refine sua busca de processos</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="w-full md:w-1/4">
-              <Select 
-                value={filters.status} 
-                onValueChange={(value) => handleFilterChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos os Status</SelectItem>
-                  <SelectItem value="new">Novo</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="canceled">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Select 
+              value={filters.status} 
+              onValueChange={(value) => handleFilterChange('status', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os Status</SelectItem>
+                <SelectItem value="new">Novo</SelectItem>
+                <SelectItem value="in_progress">Em Andamento</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="canceled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
             
-            <div className="w-full md:w-1/4">
-              <Select 
-                value={filters.process_type} 
-                onValueChange={(value) => handleFilterChange('process_type', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Tipo de Processo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos os Tipos</SelectItem>
-                  <SelectItem value="fine_appeal">Recurso de Multa</SelectItem>
-                  <SelectItem value="license_renewal">Renovação CNH</SelectItem>
-                  <SelectItem value="vehicle_registration">Registro de Veículo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select 
+              value={filters.process_type} 
+              onValueChange={(value) => handleFilterChange('process_type', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de Processo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os Tipos</SelectItem>
+                <SelectItem value="fine_appeal">Recurso de Multa</SelectItem>
+                <SelectItem value="license_renewal">Renovação CNH</SelectItem>
+                <SelectItem value="vehicle_registration">Registro de Veículo</SelectItem>
+              </SelectContent>
+            </Select>
             
-            <div className="flex-1">
+            <div className="sm:col-span-2">
               <form onSubmit={handleSearch} className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por cliente, placa ou processo..."
+                    placeholder="Buscar por cliente, placa..."
                     className="pl-8"
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                   />
                 </div>
-                <Button type="submit">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtrar
+                <Button type="submit" className="px-3">
+                  <Filter className="h-4 w-4" />
+                  <span className="sr-only">Filtrar</span>
                 </Button>
               </form>
             </div>
@@ -233,101 +343,30 @@ const ProcessManagement = () => {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>Lista de Processos</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Lista de Processos</CardTitle>
           <CardDescription>
             {total} {total === 1 ? 'processo encontrado' : 'processos encontrados'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center p-8">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : processes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Nenhum processo encontrado</h3>
-              <p className="text-muted-foreground text-center max-w-sm">
-                Não encontramos processos com os filtros atuais. Tente ajustar seus critérios de busca ou crie um novo processo.
-              </p>
-              <Button className="mt-4" asChild>
-                <Link to="/processos/novo">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Processo
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">ID</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Veículo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processes.map((process) => (
-                    <TableRow key={process.id}>
-                      <TableCell className="font-mono text-xs">
-                        {process.id.substring(0, 8)}
-                      </TableCell>
-                      <TableCell>
-                        {process.client ? (
-                          <div>
-                            <div className="font-medium">{process.client.name}</div>
-                            <div className="text-xs text-muted-foreground">{process.client.cpf_cnpj}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {process.vehicle ? (
-                          <div>
-                            <div className="font-medium">{process.vehicle.plate}</div>
-                            <div className="text-xs text-muted-foreground">{process.vehicle.brand} {process.vehicle.model}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getProcessTypeDisplay(process.process_type)}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClass(process.status)}`}>
-                          {process.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>{formatDate(process.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate(`/processos/${process.id}`)}
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <ResponsiveTable
+            data={processes}
+            columns={columns}
+            keyField="id"
+            loading={loading}
+            emptyMessage="Nenhum processo encontrado com os filtros atuais"
+            mobileCardRenderer={mobileCardRenderer}
+            onRowClick={(process) => navigate(`/processos/${process.id}`)}
+          />
 
           {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-between space-x-2 py-4">
-              <div className="flex-1 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
                 Mostrando <span className="font-medium">{((page - 1) * limit) + 1}</span> a{" "}
                 <span className="font-medium">{Math.min(page * limit, total)}</span> de{" "}
                 <span className="font-medium">{total}</span> resultados
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"

@@ -4,6 +4,8 @@ import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
+import MobileNavigation from "./MobileNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LayoutProps {
   userRole?: "client" | "employee" | "admin";
@@ -12,37 +14,30 @@ interface LayoutProps {
 
 const Layout = ({ userRole = "admin", children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const isMobile = useIsMobile();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      // Auto-close sidebar on small screens when resizing
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    // Initialize sidebar state based on screen size
-    handleResize();
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    // Auto-close sidebar on mobile, auto-open on desktop
+    if (isMobile) {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header toggleSidebar={toggleSidebar} />
       <div className="flex flex-1">
-        <Sidebar isOpen={sidebarOpen} userRole="admin" />
+        {!isMobile && (
+          <Sidebar isOpen={sidebarOpen} userRole={userRole} />
+        )}
         <main
-          className={`flex-1 transition-all duration-300 ease-in-out pt-6 px-4 md:px-6 ${
+          className={`flex-1 transition-all duration-300 ease-in-out pt-4 px-4 md:pt-6 md:px-6 ${
             sidebarOpen && !isMobile ? "md:ml-64" : "md:ml-0"
           }`}
         >

@@ -30,7 +30,7 @@ const MobileNavigation = ({ userRole = "admin" }: MobileNavigationProps) => {
       <SheetContent side="left" className="w-64 p-0">
         <div className="flex flex-col h-full">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-cabricop-blue">CabriProtege</h2>
+            <h2 className="text-lg font-semibold text-blue-600">CabriProtege</h2>
             <p className="text-sm text-muted-foreground">Menu de Navegação</p>
           </div>
           <nav className="flex-1 p-4">

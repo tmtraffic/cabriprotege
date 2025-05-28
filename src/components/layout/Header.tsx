@@ -184,7 +184,7 @@ const Header = ({ toggleSidebar, isMobile, userRole }: HeaderProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile Navigation - no final */}
+          {/* Mobile Navigation no final */}
           {isMobile && <MobileNavigation userRole={userRole} />}
         </div>
       </div>

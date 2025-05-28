@@ -36,18 +36,18 @@ const MobileNavigation = ({ userRole = "admin" }: MobileNavigationProps) => {
           <nav className="flex-1 p-4">
             <div className="space-y-2">
               {menuItems.map((item) => (
-                <SheetClose asChild key={item.label}>
+                <SheetClose asChild key={item.title}>
                   <Link
-                    to={item.path}
+                    to={item.href}
                     onClick={handleLinkClick}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
-                      location.pathname === item.path 
+                      location.pathname === item.href 
                         ? 'bg-accent text-accent-foreground' 
                         : 'text-muted-foreground'
                     }`}
                   >
                     <item.icon className="h-4 w-4" />
-                    {item.label}
+                    {item.title}
                   </Link>
                 </SheetClose>
               ))}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
@@ -10,6 +9,7 @@ interface DashboardMetrics {
   totalVehicles: number
   searchTypes: Array<{ type: string; count: number }>
   dailySearches: Array<{ date: string; count: number }>
+  monthlyGrowth: Array<{ month: string; clients: number }>
   recentSearches: Array<{
     id: string
     search_type: string
@@ -23,6 +23,13 @@ interface DashboardMetrics {
     email: string
     created_at: string
   }>
+  pendingProcesses: Array<{
+    id: string
+    type: string
+    status: string
+    created_at: string
+    client_name?: string
+  }>
 }
 
 export function useDashboardMetrics() {
@@ -34,8 +41,10 @@ export function useDashboardMetrics() {
     totalVehicles: 0,
     searchTypes: [],
     dailySearches: [],
+    monthlyGrowth: [],
     recentSearches: [],
-    recentClients: []
+    recentClients: [],
+    pendingProcesses: []
   })
   const [loading, setLoading] = useState(true)
 
@@ -120,6 +129,43 @@ export function useDashboardMetrics() {
         count
       }))
 
+      // NOVO: Buscar crescimento mensal de clientes
+      const sixMonthsAgo = new Date()
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+      
+      const { data: monthlyData } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('role', 'client')
+        .gte('created_at', sixMonthsAgo.toISOString())
+        .order('created_at', { ascending: true })
+
+      const monthlyMap = new Map()
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date()
+        date.setMonth(date.getMonth() - i)
+        const monthStr = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+        monthlyMap.set(monthStr, 0)
+      }
+
+      let cumulativeCount = 0
+      monthlyData?.forEach(item => {
+        const date = new Date(item.created_at)
+        const monthStr = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+        if (monthlyMap.has(monthStr)) {
+          monthlyMap.set(monthStr, monthlyMap.get(monthStr) + 1)
+        }
+      })
+
+      // Converter para crescimento acumulado
+      const monthlyGrowth = Array.from(monthlyMap.entries()).map(([month, count]) => {
+        cumulativeCount += count
+        return {
+          month,
+          clients: cumulativeCount
+        }
+      })
+
       // Buscar 5 últimas consultas
       const { data: recentSearchesData } = await supabase
         .from('search_history')
@@ -155,6 +201,34 @@ export function useDashboardMetrics() {
         .order('created_at', { ascending: false })
         .limit(5)
 
+      // NOVO: Buscar processos pendentes
+      const { data: pendingProcessesData } = await supabase
+        .from('processes')
+        .select(`
+          id,
+          type,
+          status,
+          created_at,
+          client_id
+        `)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: true })
+        .limit(5)
+
+      // Buscar nomes dos clientes para os processos
+      const clientIds = pendingProcessesData?.map(p => p.client_id).filter(Boolean) || []
+      const { data: clientsData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', clientIds)
+
+      const clientsMap = new Map(clientsData?.map(c => [c.id, c.name]) || [])
+
+      const pendingProcesses = pendingProcessesData?.map(process => ({
+        ...process,
+        client_name: clientsMap.get(process.client_id) || 'Cliente desconhecido'
+      })) || []
+
       setMetrics({
         totalClients: totalClients || 0,
         todaySearches: todaySearches || 0,
@@ -162,8 +236,10 @@ export function useDashboardMetrics() {
         totalVehicles: totalVehicles || 0,
         searchTypes,
         dailySearches,
+        monthlyGrowth,
         recentSearches,
-        recentClients: recentClientsData || []
+        recentClients: recentClientsData || [],
+        pendingProcesses
       })
 
     } catch (error) {

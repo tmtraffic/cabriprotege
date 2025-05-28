@@ -1,4 +1,3 @@
-
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics"
 import { MetricsCards } from "@/components/dashboard/MetricsCards"
 import { ChartsSection } from "@/components/dashboard/ChartsSection"
@@ -38,17 +37,19 @@ const AdminDashboard = () => {
         loading={loading}
       />
 
-      {/* Seção de Gráficos */}
+      {/* Seção de Gráficos - ATUALIZADO com monthlyGrowth */}
       <ChartsSection
         searchTypes={metrics.searchTypes}
         dailySearches={metrics.dailySearches}
+        monthlyGrowth={metrics.monthlyGrowth}
         loading={loading}
       />
 
-      {/* Atividade Recente */}
+      {/* Atividade Recente - ATUALIZADO com pendingProcesses */}
       <RecentActivity
         recentSearches={metrics.recentSearches}
         recentClients={metrics.recentClients}
+        pendingProcesses={metrics.pendingProcesses}
         loading={loading}
       />
     </div>

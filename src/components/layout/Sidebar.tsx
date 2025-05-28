@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +13,10 @@ import { getRoleMenuItems } from "./sidebar/menuConfigs";
 interface SidebarProps {
   isOpen: boolean;
   userRole: "client" | "employee" | "admin";
+  onClose?: () => void;
 }
 
-const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
+const Sidebar = ({ isOpen, userRole = "admin", onClose }: SidebarProps) => {
   const location = useLocation();
   const currentUser = {
     name: "Administrador",
@@ -27,28 +27,37 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
   const menuItems = getRoleMenuItems(userRole);
 
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-30 mt-16 h-[calc(100vh-4rem)] w-64 transition-transform duration-300 ease-in-out bg-sidebar border-r border-sidebar-border pb-4",
-        isOpen ? "translate-x-0" : "-translate-x-full",
-        "md:translate-x-0"
+    <>
+      {/* Overlay for mobile/tablet when sidebar is open */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-30 lg:hidden"
+          onClick={onClose}
+        />
       )}
-    >
-      <div className="flex flex-col h-full px-3 py-4">
-        <SidebarUser name={currentUser.name} role={currentUser.role} />
+      
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex flex-col h-full px-3 py-4">
+          <SidebarUser name={currentUser.name} role={currentUser.role} />
 
-        <div className="flex-1 overflow-auto">
-          <nav className="space-y-1">
-            {/* Dashboard Section */}
-            <MenuSection items={menuItems} currentPath={location.pathname} />
-          </nav>
-        </div>
+          <div className="flex-1 overflow-auto">
+            <nav className="space-y-1">
+              <MenuSection items={menuItems} currentPath={location.pathname} />
+            </nav>
+          </div>
 
-        <div className="mt-auto">
-          <SupportLink />
+          <div className="mt-auto">
+            <SupportLink />
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

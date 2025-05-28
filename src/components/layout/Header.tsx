@@ -82,15 +82,12 @@ const Header = ({ toggleSidebar, isMobile, userRole }: HeaderProps) => {
             </Button>
           )}
           
-          {/* Mobile: Navigation Component */}
-          {isMobile && <MobileNavigation userRole={userRole} />}
-          
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-cabricop-blue flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
               C
             </div>
-            <span className="font-bold text-lg hidden sm:inline-block text-cabricop-blue">
+            <span className="font-bold text-lg hidden sm:inline-block text-gray-900">
               CabriProtege
             </span>
           </Link>
@@ -116,7 +113,7 @@ const Header = ({ toggleSidebar, isMobile, userRole }: HeaderProps) => {
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
                 {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-cabricop-orange text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     {notifications}
                   </span>
                 )}
@@ -159,7 +156,7 @@ const Header = ({ toggleSidebar, isMobile, userRole }: HeaderProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative flex items-center gap-2 focus:ring-0">
-                <div className="h-8 w-8 rounded-full bg-cabricop-blue/90 flex items-center justify-center text-white font-medium text-sm">
+                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm">
                   {getUserInitials()}
                 </div>
                 <span className="hidden sm:block text-sm font-medium">
@@ -186,6 +183,9 @@ const Header = ({ toggleSidebar, isMobile, userRole }: HeaderProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Mobile Navigation - no final */}
+          {isMobile && <MobileNavigation userRole={userRole} />}
         </div>
       </div>
     </header>

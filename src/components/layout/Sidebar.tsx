@@ -13,10 +13,11 @@ import { getRoleMenuItems } from "./sidebar/menuConfigs";
 interface SidebarProps {
   isOpen: boolean;
   userRole: "client" | "employee" | "admin";
+  isMobile: boolean;
   onClose?: () => void;
 }
 
-const Sidebar = ({ isOpen, userRole = "admin", onClose }: SidebarProps) => {
+const Sidebar = ({ isOpen, userRole = "admin", isMobile }: SidebarProps) => {
   const location = useLocation();
   const currentUser = {
     name: "Administrador",
@@ -26,27 +27,27 @@ const Sidebar = ({ isOpen, userRole = "admin", onClose }: SidebarProps) => {
   // Get menu items based on user role
   const menuItems = getRoleMenuItems(userRole);
 
+  // Mobile: MobileNavigation cuida do mobile
+  if (isMobile) {
+    return null;
+  }
+
+  // Desktop: Sidebar colapsável
   return (
-    <>
-      {/* Overlay for mobile/tablet when sidebar is open */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-30 lg:hidden"
-          onClick={onClose}
-        />
+    <aside
+      className={cn(
+        "bg-white border-r transition-all duration-300 overflow-hidden",
+        isOpen ? "w-64" : "w-0"
       )}
-      
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
+    >
+      <div className={cn(
+        "transition-opacity duration-300",
+        isOpen ? "opacity-100" : "opacity-0"
+      )}>
         <div className="flex flex-col h-full px-3 py-4">
           <SidebarUser name={currentUser.name} role={currentUser.role} />
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto mt-5">
             <nav className="space-y-1">
               <MenuSection items={menuItems} currentPath={location.pathname} />
             </nav>
@@ -56,8 +57,8 @@ const Sidebar = ({ isOpen, userRole = "admin", onClose }: SidebarProps) => {
             <SupportLink />
           </div>
         </div>
-      </aside>
-    </>
+      </div>
+    </aside>
   );
 };
 

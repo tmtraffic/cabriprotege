@@ -4,9 +4,8 @@ import { MetricsCards } from "@/components/dashboard/MetricsCards"
 import { ChartsSection } from "@/components/dashboard/ChartsSection"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, ChevronLeft } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Link } from "react-router-dom"
 
 const AdminDashboard = () => {
   const { metrics, loading, refreshMetrics } = useDashboardMetrics()
@@ -14,14 +13,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 min-h-screen">
-      {/* Mobile Back Button */}
-      {isMobile && (
-        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-          <ChevronLeft className="w-5 h-5 mr-1" />
-          <span>Voltar</span>
-        </Link>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

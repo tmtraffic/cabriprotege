@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
@@ -12,10 +11,10 @@ interface LayoutProps {
 }
 
 const Layout = ({ userRole = "admin", children }: LayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
 
-  // Auto-close sidebar on mobile, auto-open on desktop
+  // Auto-close sidebar on mobile, keep open on desktop
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
@@ -29,30 +28,28 @@ const Layout = ({ userRole = "admin", children }: LayoutProps) => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-screen flex-col">
       <Header 
         toggleSidebar={toggleSidebar} 
         isMobile={isMobile}
         userRole={userRole} 
       />
       
-      <div className="flex flex-1 relative">
-        {/* Desktop Sidebar - only show when not mobile */}
-        {!isMobile && (
-          <Sidebar 
-            isOpen={sidebarOpen} 
-            userRole={userRole}
-            onClose={() => setSidebarOpen(false)}
-          />
-        )}
+      <div className="flex flex-1">
+        {/* Sidebar - sempre presente, mas controlado por estado */}
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          userRole={userRole}
+          isMobile={isMobile}
+        />
         
-        {/* Main Content */}
+        {/* Main content */}
         <main
-          className={`flex-1 transition-all duration-300 ease-in-out pt-4 px-4 md:pt-6 md:px-6 ${
-            !isMobile && sidebarOpen ? "md:ml-64" : "md:ml-0"
+          className={`flex-1 transition-all duration-300 pt-6 px-4 md:px-6 ${
+            sidebarOpen && !isMobile ? "lg:ml-64" : ""
           }`}
         >
-          <div className="container mx-auto max-w-6xl">
+          <div className="container mx-auto max-w-7xl">
             {children || <Outlet />}
           </div>
         </main>

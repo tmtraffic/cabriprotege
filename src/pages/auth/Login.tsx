@@ -76,7 +76,7 @@ const Login = () => {
       let userFriendlyMessage = err.message;
       
       if (err.message.includes('Invalid login credentials')) {
-        userFriendlyMessage = 'Email ou senha incorretos';
+        userFriendlyMessage = 'Email ou senha incorretos. Verifique suas credenciais ou use as credenciais de demonstração.';
       } else if (err.message.includes('Email not confirmed')) {
         userFriendlyMessage = 'Por favor, confirme seu email antes de fazer login';
       } else if (err.message.includes('Failed to fetch')) {
@@ -105,12 +105,19 @@ const Login = () => {
     }
   }, []);
 
+  // Função para usar credenciais de demonstração
+  const useDemoCredentials = () => {
+    setEmail('admin@exemplo.com');
+    setPassword('senha123');
+    setError(null);
+  };
+
   // Se ainda estiver carregando o estado inicial de autenticação
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-cabricop-blue" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           <p className="text-gray-600">Verificando autenticação...</p>
         </div>
       </div>
@@ -120,10 +127,10 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
-        <Card className="shadow-lg border-t-4 border-t-cabricop-blue">
+        <Card className="shadow-lg border-t-4 border-t-blue-600">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-cabricop-blue flex items-center justify-center text-white text-2xl font-bold">
+              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
                 CP
               </div>
             </div>
@@ -173,7 +180,7 @@ const Login = () => {
                   </Label>
                   <Link 
                     to="/auth/reset-password" 
-                    className="text-xs text-cabricop-blue hover:underline"
+                    className="text-xs text-blue-600 hover:underline"
                   >
                     Esqueceu sua senha?
                   </Link>
@@ -201,14 +208,14 @@ const Login = () => {
                   id="remember"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                 />
                 <Label htmlFor="remember" className="text-sm text-gray-500">
                   Lembrar meu e-mail
                 </Label>
               </div>
               
-              <Button type="submit" className="w-full bg-cabricop-blue hover:bg-cabricop-blue/90" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -218,12 +225,21 @@ const Login = () => {
               </Button>
             </form>
             
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <Alert className="bg-blue-50 text-blue-800 border-blue-200">
                 <Info className="h-4 w-4" />
                 <AlertTitle className="text-sm font-medium">Conta de demonstração</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Use admin@exemplo.com / senha123 para testar o sistema
+                <AlertDescription className="text-xs space-y-2">
+                  <p>Use <strong>admin@exemplo.com</strong> / <strong>senha123</strong> para testar o sistema</p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={useDemoCredentials}
+                    className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    Usar credenciais de demonstração
+                  </Button>
                 </AlertDescription>
               </Alert>
             </div>
@@ -234,7 +250,7 @@ const Login = () => {
               Novo cliente? 
               <Button 
                 variant="link" 
-                className="text-cabricop-blue"
+                className="text-blue-600"
                 onClick={() => navigate('/clients/new')}
                 disabled={isLoading}
               >

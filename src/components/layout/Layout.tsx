@@ -46,7 +46,7 @@ const Layout = ({ userRole = "admin", children }: LayoutProps) => {
         {/* Main content */}
         <main
           className={`flex-1 transition-all duration-300 pt-6 px-4 md:px-6 ${
-            sidebarOpen && !isMobile ? "lg:ml-64" : ""
+            sidebarOpen && !isMobile ? "md:ml-64" : ""
           }`}
         >
           <div className="container mx-auto max-w-7xl">

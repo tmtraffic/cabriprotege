@@ -11,7 +11,7 @@ export const useLoginAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  const { signIn, signUp, user, session, loading } = useSupabaseAuth();
+  const { signIn, user, session, loading } = useSupabaseAuth();
   const { toast } = useToast();
 
   // Check if user is already logged in
@@ -40,42 +40,6 @@ export const useLoginAuth = () => {
     }
   };
 
-  const createDemoUserIfNotExists = async (email: string, password: string, name: string, role: string) => {
-    try {
-      console.log(`Tentando criar usuário demo: ${email}`);
-      const { data, error } = await signUp(email, password, {
-        name,
-        role
-      });
-      
-      if (error && !error.message.includes('User already registered')) {
-        console.error('Erro ao criar usuário demo:', error);
-        return false;
-      }
-      
-      console.log(`Usuário demo criado/já existe: ${email}`);
-      return true;
-    } catch (err) {
-      console.error('Erro ao criar usuário demo:', err);
-      return false;
-    }
-  };
-
-  const ensureDemoUsersExist = async () => {
-    try {
-      console.log('Verificando/criando usuários de demonstração...');
-      
-      // Criar usuários demo se não existirem
-      await createDemoUserIfNotExists('admin@exemplo.com', 'senha123', 'Administrador Demo', 'admin');
-      await createDemoUserIfNotExists('employee@exemplo.com', 'senha123', 'Funcionário Demo', 'employee');
-      await createDemoUserIfNotExists('cliente@exemplo.com', 'senha123', 'Cliente Demo', 'client');
-      
-      console.log('Usuários de demonstração verificados/criados');
-    } catch (err) {
-      console.error('Erro ao verificar usuários demo:', err);
-    }
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -86,41 +50,9 @@ export const useLoginAuth = () => {
         throw new Error('Por favor, preencha todos os campos');
       }
 
-      // Se for uma tentativa com credenciais demo, garantir que os usuários existam
-      const isDemoCredential = ['admin@exemplo.com', 'employee@exemplo.com', 'cliente@exemplo.com'].includes(email) && password === 'senha123';
-      
-      if (isDemoCredential) {
-        await ensureDemoUsersExist();
-      }
-
       const { data, error } = await signIn(email, password);
       
       if (error) {
-        // Se for erro de credenciais inválidas e for um email demo, tentar criar o usuário
-        if (error.message.includes('Invalid login credentials') && isDemoCredential) {
-          console.log('Tentando criar usuário demo antes de fazer login...');
-          await ensureDemoUsersExist();
-          
-          // Tentar login novamente após criar o usuário
-          const { data: retryData, error: retryError } = await signIn(email, password);
-          if (retryError) throw retryError;
-          
-          if (retryData?.user) {
-            toast({
-              title: "Login realizado com sucesso",
-              description: `Bem-vindo, ${retryData.user.email}!`,
-            });
-
-            if (rememberMe) {
-              localStorage.setItem('rememberedEmail', email);
-            } else {
-              localStorage.removeItem('rememberedEmail');
-            }
-
-            redirectUserBasedOnEmail(email);
-            return;
-          }
-        }
         throw error;
       }
       
@@ -149,7 +81,7 @@ export const useLoginAuth = () => {
       let userFriendlyMessage = err.message;
       
       if (err.message.includes('Invalid login credentials')) {
-        userFriendlyMessage = 'Email ou senha incorretos. Verifique suas credenciais ou use as credenciais de demonstração.';
+        userFriendlyMessage = 'Email ou senha incorretos. Para testar o sistema, use as credenciais de demonstração através do botão abaixo.';
       } else if (err.message.includes('Email not confirmed')) {
         userFriendlyMessage = 'Por favor, confirme seu email antes de fazer login';
       } else if (err.message.includes('Failed to fetch')) {
@@ -174,8 +106,10 @@ export const useLoginAuth = () => {
     setPassword('senha123');
     setError(null);
     
-    // Garantir que os usuários demo existam quando o botão for clicado
-    await ensureDemoUsersExist();
+    toast({
+      title: "Credenciais de demonstração carregadas",
+      description: "Clique em 'Entrar' para acessar o sistema como administrador",
+    });
   };
 
   return {

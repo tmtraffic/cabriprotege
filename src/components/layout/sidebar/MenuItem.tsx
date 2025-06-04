@@ -15,10 +15,10 @@ const MenuItem = ({ title, href, icon: Icon, isActive }: MenuItemProps) => {
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors text-sidebar-foreground",
         isActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
     >
       <Icon className="h-5 w-5" />

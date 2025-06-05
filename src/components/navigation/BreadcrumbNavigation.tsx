@@ -1,121 +1,97 @@
 
 import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Home, ChevronRight } from "lucide-react";
+import { Home } from "lucide-react";
 
-// Define the type for route item
-type RouteItem = {
-  path: string;
-  label: string;
-  icon: React.ReactNode;
+// Define route mappings
+const routeNameMap: Record<string, string> = {
+  'dashboard': 'Dashboard',
+  'clients': 'Clients',
+  'clients/new': 'New Client',
+  'vehicles': 'Vehicles',
+  'processos': 'Processes',
+  'search': 'Search',
+  'import': 'Import',
+  'crm': 'CRM',
+  'documentos': 'Documents',
+  'usuarios': 'Users',
+  'configuracoes': 'Settings',
+  'admin': 'Admin',
+  'admin/infraction-config': 'Infraction Configuration',
+  'admin/webhook-config': 'Webhook Configuration',
 };
 
-// Define the routes structure
-const routes: Record<string, RouteItem[]> = {
-  '/dashboard': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> }
-  ],
-  '/clients': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/clients', label: 'Clientes', icon: <span>👤</span> }
-  ],
-  '/clients/new': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/clients', label: 'Clientes', icon: <span>👤</span> },
-    { path: '/clients/new', label: 'Novo Cliente', icon: <span>➕</span> }
-  ],
-  '/vehicles': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/vehicles', label: 'Veículos', icon: <span>🚗</span> }
-  ],
-  '/vehicles/new': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/vehicles', label: 'Veículos', icon: <span>🚗</span> },
-    { path: '/vehicles/new', label: 'Novo Veículo', icon: <span>➕</span> }
-  ],
-  '/processes': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/processes', label: 'Processos', icon: <span>📝</span> }
-  ],
-  '/processes/new': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/processes', label: 'Processos', icon: <span>📝</span> },
-    { path: '/processes/new', label: 'Novo Processo', icon: <span>➕</span> }
-  ],
-  '/settings': [
-    { path: '/dashboard', label: 'Dashboard', icon: <Home className="h-4 w-4" /> },
-    { path: '/settings', label: 'Configurações', icon: <span>⚙️</span> }
-  ]
-};
-
-const BreadcrumbNavigation = () => {
+export function BreadcrumbNavigation() {
   const location = useLocation();
-  const currentPath = location.pathname;
   
-  // Find the matching route
-  let matchingRoute = routes[currentPath];
+  // Skip rendering on home page
+  if (location.pathname === '/' || location.pathname === '/auth/login') {
+    return null;
+  }
   
-  // If no direct match, try to find a parent route
-  if (!matchingRoute) {
-    const pathSegments = currentPath.split('/').filter(Boolean);
+  // Generate breadcrumb items from current path
+  const generateBreadcrumbItems = () => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
     
-    while (pathSegments.length > 0) {
-      const potentialPath = `/${pathSegments.join('/')}`;
-      if (routes[potentialPath]) {
-        matchingRoute = [
-          ...routes[potentialPath],
-          { path: currentPath, label: 'Detalhes', icon: <span>📋</span> }
-        ];
-        break;
-      }
-      pathSegments.pop();
-    }
-  }
+    const breadcrumbItems = [
+      { path: '/', label: 'Home', icon: <Home className="h-4 w-4" /> }
+    ];
+    
+    let currentPath = '';
+    
+    pathSegments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      
+      // Find the most specific match for the current path
+      const fullPath = currentPath.substring(1); // Remove leading slash
+      const label = routeNameMap[fullPath] || segment.charAt(0).toUpperCase() + segment.slice(1);
+      
+      const isLast = index === pathSegments.length - 1;
+      
+      breadcrumbItems.push({
+        path: currentPath,
+        label,
+        isLast
+      });
+    });
+    
+    return breadcrumbItems;
+  };
   
-  // If still no match, use dashboard as fallback
-  if (!matchingRoute) {
-    matchingRoute = routes['/dashboard'];
-  }
-
+  const breadcrumbItems = generateBreadcrumbItems();
+  
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {matchingRoute.map((item, index) => (
-          <React.Fragment key={item.path}>
-            {index === matchingRoute.length - 1 ? (
-              <BreadcrumbItem>
-                <BreadcrumbPage className="flex items-center">
-                  {item.icon}
-                  <span className="ml-2">{item.label}</span>
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            ) : (
-              <BreadcrumbItem>
-                <BreadcrumbLink href={item.path} className="flex items-center">
-                  {item.icon}
-                  <span className="ml-2">{item.label}</span>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            )}
-            
-            {index < matchingRoute.length - 1 && (
-              <BreadcrumbSeparator>
-                <ChevronRight className="h-4 w-4" />
-              </BreadcrumbSeparator>
-            )}
-          </React.Fragment>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+    <div className="mb-4 px-4">
+      <Breadcrumb>
+        <BreadcrumbList>
+          {breadcrumbItems.map((item, index) => (
+            <React.Fragment key={item.path}>
+              {index > 0 && <BreadcrumbSeparator />}
+              {item.isLast ? (
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                </BreadcrumbItem>
+              ) : (
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to={item.path}>
+                      {item.icon || item.label}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              )}
+            </React.Fragment>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </div>
   );
-};
-
-export default BreadcrumbNavigation;
+}

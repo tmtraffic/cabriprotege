@@ -1,160 +1,196 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
-
-interface ApiKeyStatus {
-  helenaApi: "Configured" | "Not Configured";
-  infosimplesApi: "Configured" | "Not Configured";
-}
+import { setHelenaApiKey, getHelenaApiKey } from "@/services/api/helena-api";
+import { setInfosimplesCredentials, getInfosimplesCredentials } from "@/services/api/infosimples-api";
 
 export function ApiKeySetup() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("helena");
-  const [loading, setLoading] = useState(true);
-  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
   
-  // Fetch API key status on component mount
+  // Helena API state
+  const [helenaApiKey, setHelenaKey] = useState("");
+  const [showHelenaKey, setShowHelenaKey] = useState(false);
+  
+  // Infosimples API state
+  const [infosimplesEmail, setInfosimplesEmail] = useState("");
+  const [infosimplesApiToken, setInfosimplesApiToken] = useState("");
+  const [showInfosimplesToken, setShowInfosimplesToken] = useState(false);
+  
+  // Load saved values on component mount
   useEffect(() => {
-    fetchApiKeyStatus();
+    // Load Helena API key
+    const savedHelenaKey = localStorage.getItem("helena_api_key") || "";
+    if (savedHelenaKey) {
+      setHelenaKey(savedHelenaKey);
+      setHelenaApiKey(savedHelenaKey);
+    }
+    
+    // Load Infosimples credentials
+    const savedInfosimplesEmail = localStorage.getItem("infosimples_email") || "";
+    const savedInfosimplesToken = localStorage.getItem("infosimples_token") || "";
+    
+    if (savedInfosimplesEmail && savedInfosimplesToken) {
+      setInfosimplesEmail(savedInfosimplesEmail);
+      setInfosimplesApiToken(savedInfosimplesToken);
+      setInfosimplesCredentials(savedInfosimplesEmail, savedInfosimplesToken);
+    }
   }, []);
   
-  const fetchApiKeyStatus = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('get-api-key-status');
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      setApiKeyStatus(data as ApiKeyStatus);
-    } catch (err: any) {
-      console.error('Error fetching API key status:', err);
-      setError(err.message || 'Failed to fetch API key status');
+  const saveHelenaApiKey = () => {
+    if (!helenaApiKey.trim()) {
       toast({
-        title: "Erro",
-        description: "Não foi possível verificar o status das chaves de API",
+        title: "Error",
+        description: "Please enter a valid API key",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return;
+    }
+    
+    try {
+      // Save to localStorage (for demo purposes - in production use more secure storage)
+      localStorage.setItem("helena_api_key", helenaApiKey);
+      
+      // Set in API service
+      setHelenaApiKey(helenaApiKey);
+      
+      toast({
+        title: "Success",
+        description: "Helena API key saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save API key",
+        variant: "destructive",
+      });
     }
   };
-
-  const renderStatusBadge = (status: "Configured" | "Not Configured") => {
-    if (status === "Configured") {
-      return (
-        <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-2 rounded-md">
-          <CheckCircle className="h-5 w-5" />
-          <span>Configurada</span>
-        </div>
-      );
-    } else {
-      return (
-        <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-md">
-          <XCircle className="h-5 w-5" />
-          <span>Não Configurada</span>
-        </div>
-      );
+  
+  const saveInfosimplesCredentials = () => {
+    if (!infosimplesEmail.trim() || !infosimplesApiToken.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and API token",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Save to localStorage (for demo purposes - in production use more secure storage)
+      localStorage.setItem("infosimples_email", infosimplesEmail);
+      localStorage.setItem("infosimples_token", infosimplesApiToken);
+      
+      // Set in API service
+      setInfosimplesCredentials(infosimplesEmail, infosimplesApiToken);
+      
+      toast({
+        title: "Success",
+        description: "Infosimples credentials saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save credentials",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Configuração de APIs</CardTitle>
+        <CardTitle>API Configuration</CardTitle>
         <CardDescription>
-          Status das integrações com serviços externos
+          Configure your API keys for integration with external services
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="flex justify-center items-center p-8">
-            <div className="w-8 h-8 border-4 border-t-cabricop-blue border-cabricop-orange rounded-full animate-spin mr-3"></div>
-            <p>Verificando configuração das APIs...</p>
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="helena">Helena API</TabsTrigger>
-              <TabsTrigger value="infosimples">Infosimples API</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="helena" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <h3 className="font-medium text-lg">Status da API Helena</h3>
-                {renderStatusBadge(apiKeyStatus?.helenaApi || "Not Configured")}
-                
-                <div className="bg-muted p-4 rounded-lg mt-4">
-                  <h4 className="font-medium">Como configurar</h4>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    A chave da API Helena é configurada como uma variável de ambiente no backend. Para configurar:
-                  </p>
-                  <ol className="list-decimal list-inside text-sm text-muted-foreground mt-2 space-y-1">
-                    <li>Acesse o painel administrativo do Supabase</li>
-                    <li>Navegue até "Settings" → "API"</li>
-                    <li>Na seção de "Edge Functions", adicione uma nova variável de ambiente</li>
-                    <li>Nome da variável: <code className="bg-slate-100 px-1 py-0.5 rounded">HELENA_APP_API_KEY</code></li>
-                    <li>Valor: Sua chave de API da plataforma Helena</li>
-                  </ol>
-                </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="helena">Helena API</TabsTrigger>
+            <TabsTrigger value="infosimples">Infosimples API</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="helena" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="helena-api-key">Helena API Key</Label>
+              <div className="flex">
+                <Input
+                  id="helena-api-key"
+                  type={showHelenaKey ? "text" : "password"}
+                  value={helenaApiKey}
+                  onChange={(e) => setHelenaKey(e.target.value)}
+                  placeholder="Enter your Helena API key"
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowHelenaKey(!showHelenaKey)}
+                  className="ml-2"
+                >
+                  {showHelenaKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
-            </TabsContent>
+              <p className="text-sm text-muted-foreground">
+                Your API key is stored locally in your browser and is sent securely to the Helena API when making requests.
+              </p>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="infosimples" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="infosimples-email">Email</Label>
+              <Input
+                id="infosimples-email"
+                type="email"
+                value={infosimplesEmail}
+                onChange={(e) => setInfosimplesEmail(e.target.value)}
+                placeholder="Enter your Infosimples account email"
+              />
+            </div>
             
-            <TabsContent value="infosimples" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <h3 className="font-medium text-lg">Status da API Infosimples</h3>
-                {renderStatusBadge(apiKeyStatus?.infosimplesApi || "Not Configured")}
-                
-                <div className="bg-muted p-4 rounded-lg mt-4">
-                  <h4 className="font-medium">Como configurar</h4>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    As credenciais da API Infosimples são configuradas como variáveis de ambiente no backend. Para configurar:
-                  </p>
-                  <ol className="list-decimal list-inside text-sm text-muted-foreground mt-2 space-y-1">
-                    <li>Acesse o painel administrativo do Supabase</li>
-                    <li>Navegue até "Settings" → "API"</li>
-                    <li>Na seção de "Edge Functions", adicione duas novas variáveis de ambiente:</li>
-                    <li>Nome da primeira variável: <code className="bg-slate-100 px-1 py-0.5 rounded">INFOSIMPLES_EMAIL</code></li>
-                    <li>Valor: O email associado à sua conta Infosimples</li>
-                    <li>Nome da segunda variável: <code className="bg-slate-100 px-1 py-0.5 rounded">INFOSIMPLES_API_TOKEN</code></li>
-                    <li>Valor: Seu token de API da plataforma Infosimples</li>
-                  </ol>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="infosimples-token">API Token</Label>
+              <div className="flex">
+                <Input
+                  id="infosimples-token"
+                  type={showInfosimplesToken ? "text" : "password"}
+                  value={infosimplesApiToken}
+                  onChange={(e) => setInfosimplesApiToken(e.target.value)}
+                  placeholder="Enter your Infosimples API token"
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowInfosimplesToken(!showInfosimplesToken)}
+                  className="ml-2"
+                >
+                  {showInfosimplesToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
-            </TabsContent>
-          </Tabs>
-        )}
-        
-        <Alert className="mt-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Importante</AlertTitle>
-          <AlertDescription>
-            As chaves de API são sensíveis e devem ser mantidas em segurança. Nunca compartilhe suas chaves de API ou armazene-as em código-fonte público.
-          </AlertDescription>
-        </Alert>
+              <p className="text-sm text-muted-foreground">
+                Your credentials are stored locally in your browser and are sent securely to the Infosimples API when making requests.
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
       <CardFooter>
-        <Button onClick={fetchApiKeyStatus} disabled={loading}>
-          {loading ? "Atualizando..." : "Verificar Status"}
-        </Button>
+        {activeTab === "helena" ? (
+          <Button onClick={saveHelenaApiKey}>Save Helena API Key</Button>
+        ) : (
+          <Button onClick={saveInfosimplesCredentials}>Save Infosimples Credentials</Button>
+        )}
       </CardFooter>
     </Card>
   );

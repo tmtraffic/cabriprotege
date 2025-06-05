@@ -1,393 +1,421 @@
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
+  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Link, useNavigate } from "react-router-dom";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, FileText, Filter, ArrowUpDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { ResponsiveTable } from "@/components/ui/responsive-table";
-import { Badge } from "@/components/ui/badge";
-
-interface Process {
-  id: string;
-  client?: {
-    id: string;
-    name: string;
-    cpf_cnpj: string;
-  };
-  vehicle?: {
-    id: string;
-    plate: string;
-    brand: string;
-    model: string;
-  };
-  process_type: string;
-  status: string;
-  description: string;
-  created_at: string;
-}
+import { Link } from "react-router-dom";
+import { Plus, Search, Filter, SortAsc, FileText, Clock, CheckCircle, XCircle } from "lucide-react";
 
 const ProcessManagement = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({
-    status: "",
-    process_type: "",
-    search: ""
-  });
-
-  const fetchProcesses = async () => {
-    setLoading(true);
-    try {
-      const { data: response, error } = await supabase.functions.invoke('list-all-processes', {
-        body: { 
-          page, 
-          limit,
-          ...(filters.status && { status: filters.status }),
-          ...(filters.process_type && { process_type: filters.process_type })
-        }
-      });
-
-      if (error) throw new Error(error.message);
-      
-      setProcesses(response.data);
-      setTotal(response.pagination.total);
-    } catch (error) {
-      console.error("Error fetching processes:", error);
-      toast({
-        title: "Erro ao carregar processos",
-        description: "Não foi possível carregar a lista de processos. Tente novamente mais tarde.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  
+  const handleCreateProcess = () => {
+    toast({
+      title: "Funcionalidade em desenvolvimento",
+      description: "A criação de processos será implementada em breve."
+    });
   };
-
-  useEffect(() => {
-    fetchProcesses();
-  }, [page, limit, filters.status, filters.process_type]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // For now, search is implemented client-side
-    // In a more comprehensive implementation, we would pass the search term to the edge function
-    fetchProcesses();
-  };
-
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPage(1); // Reset to first page when filters change
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      'new': 'default',
-      'novo': 'default',
-      'in_progress': 'secondary',
-      'em_andamento': 'secondary',
-      'completed': 'default',
-      'concluido': 'default',
-      'canceled': 'destructive',
-      'cancelado': 'destructive'
-    };
-    return variants[status.toLowerCase()] || 'outline';
-  };
-
-  const getProcessTypeDisplay = (type: string) => {
-    const types: {[key: string]: string} = {
-      'Fine Appeal': 'Recurso de Multa',
-      'fine_appeal': 'Recurso de Multa',
-      'License Renewal': 'Renovação CNH',
-      'license_renewal': 'Renovação CNH',
-      'Vehicle Registration': 'Registro de Veículo',
-      'vehicle_registration': 'Registro de Veículo'
-    };
-    
-    return types[type] || type;
-  };
-
-  const columns = [
-    {
-      key: 'id',
-      label: 'ID',
-      className: 'w-[100px]',
-      render: (value: string) => (
-        <span className="font-mono text-xs">{value.substring(0, 8)}</span>
-      )
-    },
-    {
-      key: 'client',
-      label: 'Cliente',
-      render: (_: any, row: Process) => (
-        row.client ? (
-          <div>
-            <div className="font-medium">{row.client.name}</div>
-            <div className="text-xs text-muted-foreground">{row.client.cpf_cnpj}</div>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )
-      )
-    },
-    {
-      key: 'vehicle',
-      label: 'Veículo',
-      render: (_: any, row: Process) => (
-        row.vehicle ? (
-          <div>
-            <div className="font-medium">{row.vehicle.plate}</div>
-            <div className="text-xs text-muted-foreground">{row.vehicle.brand} {row.vehicle.model}</div>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )
-      )
-    },
-    {
-      key: 'process_type',
-      label: 'Tipo',
-      render: (value: string) => getProcessTypeDisplay(value)
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (value: string) => (
-        <Badge variant={getStatusBadge(value)} className="text-xs">
-          {value}
-        </Badge>
-      )
-    },
-    {
-      key: 'created_at',
-      label: 'Data',
-      render: (value: string) => formatDate(value)
-    },
-    {
-      key: 'actions',
-      label: 'Ações',
-      className: 'text-right',
-      render: (_: any, row: Process) => (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/processos/${row.id}`);
-          }}
-        >
-          Ver Detalhes
-        </Button>
-      )
-    }
-  ];
-
-  const mobileCardRenderer = (process: Process, index: number) => (
-    <Card key={process.id} className="cursor-pointer hover:shadow-md transition-shadow">
-      <CardContent className="p-4" onClick={() => navigate(`/processos/${process.id}`)}>
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <p className="font-medium text-sm">
-              {process.client?.name || 'Cliente não informado'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              ID: {process.id.substring(0, 8)}
-            </p>
-          </div>
-          <Badge variant={getStatusBadge(process.status)} className="text-xs">
-            {process.status}
-          </Badge>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tipo:</span>
-            <span>{getProcessTypeDisplay(process.process_type)}</span>
-          </div>
-          
-          {process.vehicle && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Veículo:</span>
-              <span>{process.vehicle.plate}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Data:</span>
-            <span>{formatDate(process.created_at)}</span>
-          </div>
-        </div>
-        
-        <Button variant="outline" size="sm" className="w-full mt-3">
-          Ver Detalhes
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
-  const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gerenciamento de Processos</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Visualize e gerencie todos os processos
+          <h1 className="text-3xl font-bold tracking-tight">Gestão de Processos</h1>
+          <p className="text-muted-foreground">
+            Gerencie processos e recursos de multas
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link to="/processos/novo">
+        <div className="flex items-center gap-2">
+          <Button onClick={handleCreateProcess}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Processo
-          </Link>
-        </Button>
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg sm:text-xl">Filtros</CardTitle>
-          <CardDescription>Refine sua busca de processos</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Select 
-              value={filters.status} 
-              onValueChange={(value) => handleFilterChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todos os Status</SelectItem>
-                <SelectItem value="new">Novo</SelectItem>
-                <SelectItem value="in_progress">Em Andamento</SelectItem>
-                <SelectItem value="completed">Concluído</SelectItem>
-                <SelectItem value="canceled">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <Card className="w-full md:w-1/4">
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-medium">Status</p>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="status-all" 
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  defaultChecked
+                />
+                <label htmlFor="status-all" className="ml-2 text-sm">Todos</label>
+              </div>
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="status-new" 
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                />
+                <label htmlFor="status-new" className="ml-2 text-sm">Novos</label>
+              </div>
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="status-in-progress" 
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                />
+                <label htmlFor="status-in-progress" className="ml-2 text-sm">Em Andamento</label>
+              </div>
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="status-waiting" 
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                />
+                <label htmlFor="status-waiting" className="ml-2 text-sm">Aguardando</label>
+              </div>
+              <div className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  id="status-completed" 
+                  className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                />
+                <label htmlFor="status-completed" className="ml-2 text-sm">Concluídos</label>
+              </div>
+            </div>
             
-            <Select 
-              value={filters.process_type} 
-              onValueChange={(value) => handleFilterChange('process_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de Processo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todos os Tipos</SelectItem>
-                <SelectItem value="fine_appeal">Recurso de Multa</SelectItem>
-                <SelectItem value="license_renewal">Renovação CNH</SelectItem>
-                <SelectItem value="vehicle_registration">Registro de Veículo</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium">Tipo de Infração</p>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="type-all" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                    defaultChecked
+                  />
+                  <label htmlFor="type-all" className="ml-2 text-sm">Todos</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="type-speed" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="type-speed" className="ml-2 text-sm">Excesso de Velocidade</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="type-parking" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="type-parking" className="ml-2 text-sm">Estacionamento</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="type-red-light" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="type-red-light" className="ml-2 text-sm">Semáforo/Sinal</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="type-license" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="type-license" className="ml-2 text-sm">Suspensão de CNH</label>
+                </div>
+              </div>
+            </div>
             
-            <div className="sm:col-span-2">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por cliente, placa..."
-                    className="pl-8"
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium">Período</p>
+              <div className="space-y-2 mt-2">
+                <div className="space-y-1">
+                  <label htmlFor="date-from" className="text-xs">De</label>
+                  <input 
+                    type="date" 
+                    id="date-from" 
+                    className="w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   />
                 </div>
-                <Button type="submit" className="px-3">
-                  <Filter className="h-4 w-4" />
-                  <span className="sr-only">Filtrar</span>
-                </Button>
-              </form>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg sm:text-xl">Lista de Processos</CardTitle>
-          <CardDescription>
-            {total} {total === 1 ? 'processo encontrado' : 'processos encontrados'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable
-            data={processes}
-            columns={columns}
-            keyField="id"
-            loading={loading}
-            emptyMessage="Nenhum processo encontrado com os filtros atuais"
-            mobileCardRenderer={mobileCardRenderer}
-            onRowClick={(process) => navigate(`/processos/${process.id}`)}
-          />
-
-          {!loading && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Mostrando <span className="font-medium">{((page - 1) * limit) + 1}</span> a{" "}
-                <span className="font-medium">{Math.min(page * limit, total)}</span> de{" "}
-                <span className="font-medium">{total}</span> resultados
+                <div className="space-y-1">
+                  <label htmlFor="date-to" className="text-xs">Até</label>
+                  <input 
+                    type="date" 
+                    id="date-to" 
+                    className="w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  />
+                </div>
               </div>
-              <div className="flex items-center space-x-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
+            </div>
+            
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium">Atribuído a</p>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="assigned-all" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                    defaultChecked
+                  />
+                  <label htmlFor="assigned-all" className="ml-2 text-sm">Todos</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="assigned-me" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="assigned-me" className="ml-2 text-sm">Meus Processos</label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="assigned-unassigned" 
+                    className="h-4 w-4 rounded border-gray-300 text-cabricop-blue focus:ring-cabricop-blue"
+                  />
+                  <label htmlFor="assigned-unassigned" className="ml-2 text-sm">Não Atribuídos</label>
+                </div>
+              </div>
+            </div>
+            
+            <Button className="w-full mt-4">
+              <Filter className="h-4 w-4 mr-2" />
+              Aplicar Filtros
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <div className="flex-1">
+          <Card className="w-full">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>Processos</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="search"
+                      placeholder="Buscar processo..."
+                      className="pl-8 h-9 w-full md:w-[200px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <SortAsc className="h-4 w-4 mr-2" />
+                    Ordenar
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cabricop-blue" />
+                        <h3 className="font-medium">Processo #12345</h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                          Em Andamento
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">Cliente: João da Silva</p>
+                      <p className="text-sm text-muted-foreground">Excesso de velocidade - Auto nº I41664643</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+                      <div className="text-sm text-right">
+                        <p>Prazo: <span className="font-semibold text-red-600">2 dias</span></p>
+                        <p className="text-xs text-muted-foreground">Criado em: 15/04/2025</p>
+                      </div>
+                      <Button size="sm">Ver Detalhes</Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cabricop-blue" />
+                        <h3 className="font-medium">Processo #12346</h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          Aguardando Análise
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">Cliente: Maria Oliveira</p>
+                      <p className="text-sm text-muted-foreground">Estacionamento irregular - Auto nº E43789654</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+                      <div className="text-sm text-right">
+                        <p>Prazo: <span className="font-semibold">15 dias</span></p>
+                        <p className="text-xs text-muted-foreground">Criado em: 12/04/2025</p>
+                      </div>
+                      <Button size="sm">Ver Detalhes</Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cabricop-blue" />
+                        <h3 className="font-medium">Processo #12347</h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                          Deferido
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">Cliente: Carlos Santos</p>
+                      <p className="text-sm text-muted-foreground">Avanço de sinal vermelho - Auto nº B12398745</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+                      <div className="text-sm text-right">
+                        <p>Concluído: <CheckCircle className="inline h-3 w-3 text-green-600" /></p>
+                        <p className="text-xs text-muted-foreground">Criado em: 05/04/2025</p>
+                      </div>
+                      <Button size="sm">Ver Detalhes</Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cabricop-blue" />
+                        <h3 className="font-medium">Processo #12348</h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          Indeferido
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">Cliente: Ana Barbosa</p>
+                      <p className="text-sm text-muted-foreground">Excesso de velocidade - Auto nº H35789256</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+                      <div className="text-sm text-right">
+                        <p>Concluído: <XCircle className="inline h-3 w-3 text-red-600" /></p>
+                        <p className="text-xs text-muted-foreground">Criado em: 01/04/2025</p>
+                      </div>
+                      <Button size="sm">Ver Detalhes</Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cabricop-blue" />
+                        <h3 className="font-medium">Processo #12349</h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                          Novo
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">Cliente: Roberto Almeida</p>
+                      <p className="text-sm text-muted-foreground">Suspensão de CNH - 20 pontos</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+                      <div className="text-sm text-right">
+                        <p>Prazo: <span className="font-semibold text-orange-600">5 dias</span></p>
+                        <p className="text-xs text-muted-foreground">Criado em: 20/04/2025</p>
+                      </div>
+                      <Button size="sm">Ver Detalhes</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between border-t pt-4">
+              <div className="text-sm text-muted-foreground">
+                Exibindo 5 de 24 processos
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" disabled>
                   Anterior
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
+                <Button variant="outline" size="sm" className="w-8 h-8 p-0">
+                  1
+                </Button>
+                <Button variant="outline" size="sm" className="w-8 h-8 p-0 bg-muted">
+                  2
+                </Button>
+                <Button variant="outline" size="sm" className="w-8 h-8 p-0">
+                  3
+                </Button>
+                <Button variant="outline" size="sm">
                   Próximo
                 </Button>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardFooter>
+          </Card>
+          
+          <Card className="w-full mt-4">
+            <CardHeader>
+              <CardTitle>Prazos Críticos</CardTitle>
+              <CardDescription>
+                Processos que necessitam de atenção imediata
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 border rounded-lg bg-red-50">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="font-medium">Processo #12345</p>
+                      <p className="text-xs text-muted-foreground">João da Silva - Excesso de velocidade</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-red-600">Vence em 2 dias</p>
+                    <p className="text-xs text-muted-foreground">22/04/2025</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-2 border rounded-lg bg-orange-50">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-orange-600" />
+                    <div>
+                      <p className="font-medium">Processo #12349</p>
+                      <p className="text-xs text-muted-foreground">Roberto Almeida - Suspensão de CNH</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-orange-600">Vence em 5 dias</p>
+                    <p className="text-xs text-muted-foreground">25/04/2025</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-2 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Processo #12346</p>
+                      <p className="text-xs text-muted-foreground">Maria Oliveira - Estacionamento irregular</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm">Vence em 15 dias</p>
+                    <p className="text-xs text-muted-foreground">05/05/2025</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

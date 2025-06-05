@@ -121,7 +121,7 @@ export function toggleWebhookStatus(id: string): Webhook {
 /**
  * Test a webhook by sending a test event
  */
-export const testWebhook = async (webhook: Webhook): Promise<{ success: boolean; message: string }> => {
+export async function testWebhook(webhook: Webhook): Promise<boolean> {
   try {
     const testPayload = {
       event: "test_event",
@@ -154,20 +154,33 @@ export const testWebhook = async (webhook: Webhook): Promise<{ success: boolean;
       failCount: 0
     });
     
-    notifyWebhookReceived(testPayload);
+    toast({
+      title: "Webhook Test Successful",
+      description: "The test event was sent successfully.",
+    });
     
-    return {
-      success: true,
-      message: "Webhook test successful!"
-    };
+    return true;
   } catch (error) {
-    console.error("Error testing webhook:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Failed to test webhook"
-    };
+    console.error("Failed to test webhook:", error);
+    
+    // Update fail count
+    const currentWebhook = getAllWebhooks().find(hook => hook.id === webhook.id);
+    if (currentWebhook) {
+      updateWebhook(webhook.id, { 
+        lastTriggered: new Date().toISOString(),
+        failCount: (currentWebhook.failCount || 0) + 1
+      });
+    }
+    
+    toast({
+      title: "Webhook Test Failed",
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive",
+    });
+    
+    return false;
   }
-};
+}
 
 /**
  * Helper to generate a unique ID
@@ -258,10 +271,3 @@ export async function triggerWebhook(eventType: string, data: any): Promise<void
     console.error("Failed to trigger webhooks:", error);
   }
 }
-
-/**
- * Notify that a webhook has been received
- */
-const notifyWebhookReceived = (payload: any) => {
-  toast(`Received webhook with ID: ${payload.id || 'unknown'}`);
-};

@@ -72,8 +72,7 @@ export const useSupabaseAuth = () => {
         email,
         password,
         options: {
-          data: userData,
-          emailRedirectTo: `${window.location.origin}/`
+          data: userData
         }
       });
       

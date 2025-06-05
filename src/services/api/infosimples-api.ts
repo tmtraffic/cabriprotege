@@ -1,5 +1,5 @@
 
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/sonner";
 
 const INFOSIMPLES_API_BASE_URL = "https://api.infosimples.com/api/v2";
 
@@ -95,6 +95,7 @@ async function makeRequest<T>({
   } catch (error) {
     console.error("Infosimples API request failed:", error);
     toast({
+      title: "API Request Failed",
       description: error instanceof Error ? error.message : "Unknown error",
       variant: "destructive",
     });

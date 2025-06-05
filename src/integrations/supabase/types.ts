@@ -95,60 +95,6 @@ export type Database = {
         }
         Relationships: []
       }
-      infosimples_searches: {
-        Row: {
-          client_id: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          response_data: Json | null
-          search_params: Json
-          search_type: string
-          status: string | null
-          updated_at: string | null
-          vehicle_id: string | null
-        }
-        Insert: {
-          client_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          response_data?: Json | null
-          search_params: Json
-          search_type: string
-          status?: string | null
-          updated_at?: string | null
-          vehicle_id?: string | null
-        }
-        Update: {
-          client_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          response_data?: Json | null
-          search_params?: Json
-          search_type?: string
-          status?: string | null
-          updated_at?: string | null
-          vehicle_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "infosimples_searches_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "infosimples_searches_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       infractions: {
         Row: {
           auto_number: string | null
@@ -157,7 +103,6 @@ export type Database = {
           description: string | null
           id: string
           points: number | null
-          process_id: string | null
           status: string | null
           updated_at: string
           value: number
@@ -170,7 +115,6 @@ export type Database = {
           description?: string | null
           id?: string
           points?: number | null
-          process_id?: string | null
           status?: string | null
           updated_at?: string
           value: number
@@ -183,7 +127,6 @@ export type Database = {
           description?: string | null
           id?: string
           points?: number | null
-          process_id?: string | null
           status?: string | null
           updated_at?: string
           value?: number
@@ -198,77 +141,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      notification_logs: {
-        Row: {
-          context_data: Json | null
-          created_at: string
-          error_message: string | null
-          id: string
-          recipient: string
-          sent_at: string | null
-          status: string
-          template_id: string | null
-        }
-        Insert: {
-          context_data?: Json | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          recipient: string
-          sent_at?: string | null
-          status?: string
-          template_id?: string | null
-        }
-        Update: {
-          context_data?: Json | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          recipient?: string
-          sent_at?: string | null
-          status?: string
-          template_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_logs_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "notification_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_templates: {
-        Row: {
-          body_template: string
-          created_at: string
-          id: string
-          name: string
-          subject_template: string | null
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          body_template: string
-          created_at?: string
-          id?: string
-          name: string
-          subject_template?: string | null
-          type: string
-          updated_at?: string
-        }
-        Update: {
-          body_template?: string
-          created_at?: string
-          id?: string
-          name?: string
-          subject_template?: string | null
-          type?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       processes: {
         Row: {
@@ -361,49 +233,34 @@ export type Database = {
       search_history: {
         Row: {
           created_at: string
-          created_by: string | null
-          error_message: string | null
           id: string
           related_client_id: string | null
           related_vehicle_id: string | null
-          response_data: Json | null
           result_data: Json | null
-          search_params: Json | null
           search_query: string
           search_type: string
-          status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          created_by?: string | null
-          error_message?: string | null
           id?: string
           related_client_id?: string | null
           related_vehicle_id?: string | null
-          response_data?: Json | null
           result_data?: Json | null
-          search_params?: Json | null
           search_query: string
           search_type: string
-          status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          created_by?: string | null
-          error_message?: string | null
           id?: string
           related_client_id?: string | null
           related_vehicle_id?: string | null
-          response_data?: Json | null
           result_data?: Json | null
-          search_params?: Json | null
           search_query?: string
           search_type?: string
-          status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -437,7 +294,6 @@ export type Database = {
           professional_use: boolean | null
           renavam: string | null
           updated_at: string
-          vehicle_id: string | null
           year: number | null
         }
         Insert: {
@@ -452,7 +308,6 @@ export type Database = {
           professional_use?: boolean | null
           renavam?: string | null
           updated_at?: string
-          vehicle_id?: string | null
           year?: number | null
         }
         Update: {
@@ -467,7 +322,6 @@ export type Database = {
           professional_use?: boolean | null
           renavam?: string | null
           updated_at?: string
-          vehicle_id?: string | null
           year?: number | null
         }
         Relationships: [

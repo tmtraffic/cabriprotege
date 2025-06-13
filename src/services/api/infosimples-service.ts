@@ -45,24 +45,89 @@ export async function runPlateSearch(plate: string, userId: string) {
 
     console.log('Database record created:', request);
 
-    // 2. Call Edge Function instead of direct API
-    console.log('Calling Edge Function infosimples-api...');
-    const { data, error } = await supabase.functions.invoke('infosimples-api', {
-      body: { 
-        action: 'searchVehicleByPlate',
-        plate: plate 
+    console.log('Testing different Edge Function formats...');
+    
+    // First, try the specific vehicle fines function
+    console.log('Trying consult-infosimples-vehicle-fines function...');
+    
+    const vehicleFinesFormats = [
+      { plate: plate },
+      { placa: plate },
+      { vehicle_plate: plate },
+      { licensePlate: plate },
+      { query: plate, type: 'plate' },
+      { searchQuery: plate, searchType: 'plate' }
+    ];
+    
+    let successResponse = null;
+    let usedFunction = null;
+    
+    for (const [index, format] of vehicleFinesFormats.entries()) {
+      console.log(`Trying vehicle fines format ${index + 1}:`, format);
+      
+      const { data, error } = await supabase.functions.invoke('consult-infosimples-vehicle-fines', {
+        body: format
+      });
+      
+      if (!error && data) {
+        console.log('Success with vehicle fines format:', format);
+        console.log('Response:', data);
+        successResponse = data;
+        usedFunction = 'consult-infosimples-vehicle-fines';
+        break;
+      } else {
+        console.log(`Vehicle fines format ${index + 1} failed:`, error?.message || 'No data returned');
       }
-    });
-
-    if (error) {
-      console.error('Edge Function error:', error);
-      throw new Error(`Erro na função: ${error.message}`);
+    }
+    
+    // If vehicle fines function didn't work, try the generic infosimples-api function
+    if (!successResponse) {
+      console.log('Trying generic infosimples-api function...');
+      
+      const genericFormats = [
+        { action: 'searchVehicleByPlate', plate: plate },
+        { action: 'searchVehicleByPlate', placa: plate },
+        { method: 'searchVehicleByPlate', params: { plate } },
+        { method: 'searchVehicleByPlate', params: { placa: plate } },
+        { placa: plate },
+        { plate: plate },
+        { query: plate, type: 'placa' },
+        { action: 'placa', value: plate },
+        { consultaPlaca: plate },
+        { vehiclePlate: plate },
+        { searchType: 'plate', searchValue: plate },
+        { tipo: 'placa', valor: plate }
+      ];
+      
+      for (const [index, format] of genericFormats.entries()) {
+        console.log(`Trying generic format ${index + 1}:`, format);
+        
+        const { data, error } = await supabase.functions.invoke('infosimples-api', {
+          body: format
+        });
+        
+        if (!error && data) {
+          console.log('Success with generic format:', format);
+          console.log('Response:', data);
+          successResponse = data;
+          usedFunction = 'infosimples-api';
+          break;
+        } else {
+          console.log(`Generic format ${index + 1} failed:`, error?.message || 'No data returned');
+        }
+      }
+    }
+    
+    if (!successResponse) {
+      console.error('All format attempts failed');
+      throw new Error('Todos os formatos de requisição falharam. Verifique os logs da Edge Function.');
     }
 
-    console.log('Edge Function response:', data);
+    console.log(`Successful function: ${usedFunction}`);
+    console.log('Final response:', successResponse);
     
     // 3. Update request with protocol
-    const protocol = data?.protocolo || data?.protocol;
+    const protocol = successResponse?.protocolo || successResponse?.protocol;
     console.log('Protocol extracted:', protocol);
 
     if (protocol) {

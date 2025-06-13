@@ -24,48 +24,63 @@ export async function runPlateSearch(plate: string, userId: string) {
   }
 
   try {
-    // Call the Edge Function for vehicle data
-    console.log('Calling infosimples-api for vehicle data...');
+    // Save request to database
+    const { data: request, error: dbError } = await supabase
+      .from("infosimples_requests")
+      .insert({ 
+        user_id: userId, 
+        search_type: "plate", 
+        search_query: plate,
+        status: "pending"
+      })
+      .select("id")
+      .single();
+      
+    if (dbError) throw dbError;
+
+    // Call the simplified Edge Function
+    console.log('Calling Edge Function...');
+    
     const { data, error } = await supabase.functions.invoke('infosimples-api', {
       body: { 
         searchType: 'vehicle',
-        placa: plate
+        searchQuery: plate,
+        placa: plate  // Send both formats to be sure
       }
     });
 
     if (error) {
       console.error('Edge Function error:', error);
-      throw new Error(`Erro na consulta: ${error.message}`);
+      throw new Error(`Edge Function error: ${error.message}`);
     }
 
-    console.log('Vehicle data received:', data);
-
+    console.log('Edge Function response:', data);
+    
     if (data?.success) {
-      // Save to our database
-      const { data: saved, error: saveError } = await supabase
+      // Save the result
+      await supabase.from("infosimples_results").insert({
+        request_id: request.id,
+        result_data: data.data,
+      });
+      
+      // Update request status
+      await supabase
         .from("infosimples_requests")
-        .insert({ 
-          user_id: userId, 
-          search_type: "vehicle", 
-          search_query: plate,
+        .update({ 
           status: "completed",
-          protocol: data.protocolo || `vehicle_${Date.now()}`
+          protocol: data.protocolo || `${Date.now()}`
         })
-        .select("id")
-        .single();
-
-      if (saveError) {
-        console.error('Database save error:', saveError);
-      }
-
+        .eq("id", request.id);
+      
       return { 
-        requestId: saved?.id,
+        requestId: request.id,
         completed: true,
-        vehicleData: data.data
+        data: data.data,
+        site_receipts: data.site_receipts
       };
+    } else {
+      throw new Error(data?.error || 'Failed to get vehicle data');
     }
-
-    throw new Error('Falha ao obter dados do veículo');
     
   } catch (error) {
     console.error('runPlateSearch error:', error);
@@ -119,164 +134,22 @@ export async function runMultasSearch(renavam: string, cpf: string, userId: stri
   }
 }
 
-export async function runRenavamSearch(renavam: string, userId: string) {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-    throw new Error('Usuário não autenticado no sistema');
-  }
-
-  try {
-    const { data: request, error: dbError } = await supabase
-      .from("infosimples_requests")
-      .insert({ 
-        user_id: userId, 
-        search_type: "renavam", 
-        search_query: renavam,
-        status: "pending"
-      })
-      .select("id")
-      .single();
-
-    if (dbError || !request) {
-      throw new Error(dbError?.message || "Falha ao criar solicitação de busca");
-    }
-
-    const { data, error } = await supabase.functions.invoke('infosimples-api', {
-      body: { 
-        service: 'detran/veiculo',
-        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
-        parameters: {
-          renavam: renavam
-        }
-      }
-    });
-
-    if (error) {
-      throw new Error(`Erro na função: ${error.message}`);
-    }
-
-    const protocol = data?.protocolo || data?.protocol;
+// Simplified polling - Edge Function returns immediately
+export async function pollResult(requestId: string) {
+  const { data } = await supabase
+    .from("infosimples_results")
+    .select("result_data")
+    .eq("request_id", requestId)
+    .single();
     
-    if (protocol) {
-      await supabase
-        .from("infosimples_requests")
-        .update({ protocol, status: "running" })
-        .eq("id", request.id);
-    }
+  return data?.result_data || { status: "completed" };
+}
 
-    return { requestId: request.id, protocol };
-  } catch (error) {
-    console.error('runRenavamSearch error:', error);
-    throw error;
-  }
+// Temporarily disable other searches
+export async function runRenavamSearch(renavam: string, userId: string) {
+  throw new Error('Use a busca por placa para consultar o veículo');
 }
 
 export async function runCNHSearch(cnh: string, birthDate: string, userId: string) {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-    throw new Error('Usuário não autenticado no sistema');
-  }
-
-  try {
-    const { data: request, error: dbError } = await supabase
-      .from("infosimples_requests")
-      .insert({ 
-        user_id: userId, 
-        search_type: "cnh", 
-        search_query: cnh,
-        status: "pending"
-      })
-      .select("id")
-      .single();
-
-    if (dbError || !request) {
-      throw new Error(dbError?.message || "Falha ao criar solicitação de busca");
-    }
-
-    const { data, error } = await supabase.functions.invoke('infosimples-api', {
-      body: { 
-        service: 'detran/cnh',
-        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
-        parameters: {
-          cnh: cnh,
-          data_nascimento: birthDate
-        }
-      }
-    });
-
-    if (error) {
-      throw new Error(`Erro na função: ${error.message}`);
-    }
-
-    const protocol = data?.protocolo || data?.protocol;
-    
-    if (protocol) {
-      await supabase
-        .from("infosimples_requests")
-        .update({ protocol, status: "running" })
-        .eq("id", request.id);
-    }
-
-    return { requestId: request.id, protocol };
-  } catch (error) {
-    console.error('runCNHSearch error:', error);
-    throw error;
-  }
-}
-
-// Simplified - no polling needed since InfoSimples returns immediately for new structure
-export async function pollResult(requestId: string, protocol: string) {
-  try {
-    console.log('Polling for result:', { requestId, protocol });
-    
-    // Try to get the status from Edge Function
-    const { data: statusData, error: statusError } = await supabase.functions.invoke('infosimples-api', {
-      body: {
-        action: 'getStatus',
-        protocol: protocol,
-        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF'
-      }
-    });
-
-    if (!statusError && statusData?.status === 'concluido') {
-      // Get the full result
-      const { data: resultData } = await supabase.functions.invoke('infosimples-api', {
-        body: {
-          action: 'getResult',
-          protocol: protocol,
-          token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF'
-        }
-      });
-
-      if (resultData) {
-        // Save to database
-        await supabase.from("infosimples_results").insert({
-          request_id: requestId,
-          result_data: resultData,
-        });
-        
-        await supabase
-          .from("infosimples_requests")
-          .update({ status: "completed" })
-          .eq("id", requestId);
-
-        return resultData;
-      }
-    }
-
-    // If not ready, return status
-    return statusData || { status: 'processing' };
-    
-  } catch (error) {
-    console.error('pollResult error:', error);
-    // Marcar como erro
-    await supabase
-      .from("infosimples_requests")
-      .update({ status: "error" })
-      .eq("id", requestId);
-    
-    return { status: 'error', error: error.message };
-  }
+  throw new Error('Consulta de CNH será implementada em breve');
 }

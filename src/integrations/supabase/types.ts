@@ -51,6 +51,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_credentials: {
+        Row: {
+          api_token: string
+          callback_secret: string | null
+          created_at: string | null
+          encryption_key: string
+          id: string
+          is_active: boolean | null
+          service: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_token: string
+          callback_secret?: string | null
+          created_at?: string | null
+          encryption_key: string
+          id?: string
+          is_active?: boolean | null
+          service?: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_token?: string
+          callback_secret?: string | null
+          created_at?: string | null
+          encryption_key?: string
+          id?: string
+          is_active?: boolean | null
+          service?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       deadlines: {
         Row: {
           completed: boolean | null

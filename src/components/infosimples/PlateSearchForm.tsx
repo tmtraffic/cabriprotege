@@ -19,17 +19,12 @@ function formatPlate(value: string) {
   return formatted.slice(0, 8);
 }
 
-interface SearchResult {
-  vehicle?: any;
-  multas?: any;
-}
-
 export default function PlateSearchForm() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const [plate, setPlate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<SearchResult | null>(null);
+  const [result, setResult] = useState<any>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlate(formatPlate(e.target.value));
@@ -58,55 +53,29 @@ export default function PlateSearchForm() {
       return;
     }
 
+    setLoading(true);
+    setResult(null);
+    
     try {
-      setLoading(true);
-      setResult(null);
+      const cleanPlate = plate.replace(/[^A-Z0-9]/g, "");
+      console.log('Starting search for:', cleanPlate);
       
-      const cleaned = plate.replace(/[^A-Z0-9]/g, "");
+      const response = await InfosimplesService.runPlateSearch(cleanPlate, user.id);
       
-      console.log('Calling runPlateSearch with:', {
-        plate: cleaned,
-        userId: user.id,
-        userEmail: user.email
-      });
+      console.log('Search completed:', response);
       
-      // First get vehicle data
-      const vehicleResult = await InfosimplesService.runPlateSearch(cleaned, user.id);
-      
-      console.log('Vehicle result:', vehicleResult);
-      
-      let finalResult: SearchResult = {
-        vehicle: vehicleResult.vehicleData
-      };
-
-      // If we have RENAVAM and can extract CPF, search for fines
-      if (vehicleResult.vehicleData?.renavam) {
-        try {
-          // Try to extract CPF from email or use a placeholder
-          const cpfMatch = user.email?.match(/\d{11}/);
-          const cpf = cpfMatch?.[0] || '00000000000'; // Fallback CPF
-          
-          console.log('Searching for multas with RENAVAM:', vehicleResult.vehicleData.renavam);
-          
-          const multasResult = await InfosimplesService.runMultasSearch(
-            vehicleResult.vehicleData.renavam,
-            cpf,
-            user.id
-          );
-          
-          console.log('Multas result:', multasResult);
-          finalResult.multas = multasResult;
-        } catch (multasError) {
-          console.error('Error fetching multas:', multasError);
-          // Continue without multas data
+      if (response.completed && response.data) {
+        setResult(response.data);
+        toast({
+          title: "Consulta concluída",
+          description: "Dados do veículo carregados com sucesso"
+        });
+        
+        // Log site receipts if available
+        if (response.site_receipts?.length > 0) {
+          console.log('Comprovantes disponíveis:', response.site_receipts);
         }
       }
-      
-      setResult(finalResult);
-      toast({
-        title: "Consulta concluída",
-        description: "Dados do veículo carregados com sucesso"
-      });
       
     } catch (err: any) {
       console.error('Search error:', err);
@@ -150,50 +119,23 @@ export default function PlateSearchForm() {
           <Alert>
             <LoadingSpinner size="sm" />
             <AlertDescription>
-              Consultando dados do veículo e multas... Aguarde alguns segundos.
+              Consultando dados do veículo... Aguarde alguns segundos.
             </AlertDescription>
           </Alert>
         )}
         
         {result && (
           <div className="mt-4 space-y-4">
-            {result.vehicle && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Dados do Veículo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
-                    {JSON.stringify(result.vehicle, null, 2)}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
-            
-            {result.multas && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Multas e Infrações
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
-                    {JSON.stringify(result.multas, null, 2)}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
-            
-            {!result.multas && result.vehicle && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Dados de multas não disponíveis. Isso pode ocorrer se o RENAVAM não estiver disponível ou se não foi possível identificar o CPF do proprietário.
-                </AlertDescription>
-              </Alert>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Dados do Veículo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </CardContent>
+            </Card>
           </div>
         )}
       </CardContent>

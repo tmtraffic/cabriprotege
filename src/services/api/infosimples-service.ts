@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   searchVehicleByPlate,
@@ -8,6 +9,7 @@ import {
 } from "./infosimples-api";
 
 export async function runPlateSearch(plate: string, userId: string) {
+  // Criar registro na tabela de requests
   const { data, error } = await supabase
     .from("infosimples_requests")
     .insert({
@@ -20,18 +22,29 @@ export async function runPlateSearch(plate: string, userId: string) {
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message || "Failed to create request");
+    throw new Error(error?.message || "Falha ao criar solicitação de busca");
   }
 
-  const response = await searchVehicleByPlate(plate);
-  const protocol = (response as any).protocolo || (response as any).protocol;
+  try {
+    // Executar busca via API
+    const response = await searchVehicleByPlate(plate);
+    const protocol = (response as any).protocolo || (response as any).protocol;
 
-  await supabase
-    .from("infosimples_requests")
-    .update({ protocol, status: "running" })
-    .eq("id", data.id);
+    // Atualizar com o protocolo
+    await supabase
+      .from("infosimples_requests")
+      .update({ protocol, status: "running" })
+      .eq("id", data.id);
 
-  return { requestId: data.id, protocol };
+    return { requestId: data.id, protocol };
+  } catch (error) {
+    // Marcar como erro se falhar
+    await supabase
+      .from("infosimples_requests")
+      .update({ status: "error" })
+      .eq("id", data.id);
+    throw error;
+  }
 }
 
 export async function runRenavamSearch(renavam: string, userId: string) {
@@ -47,18 +60,26 @@ export async function runRenavamSearch(renavam: string, userId: string) {
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message || "Failed to create request");
+    throw new Error(error?.message || "Falha ao criar solicitação de busca");
   }
 
-  const response = await searchVehicleByRenavam(renavam);
-  const protocol = (response as any).protocolo || (response as any).protocol;
+  try {
+    const response = await searchVehicleByRenavam(renavam);
+    const protocol = (response as any).protocolo || (response as any).protocol;
 
-  await supabase
-    .from("infosimples_requests")
-    .update({ protocol, status: "running" })
-    .eq("id", data.id);
+    await supabase
+      .from("infosimples_requests")
+      .update({ protocol, status: "running" })
+      .eq("id", data.id);
 
-  return { requestId: data.id, protocol };
+    return { requestId: data.id, protocol };
+  } catch (error) {
+    await supabase
+      .from("infosimples_requests")
+      .update({ status: "error" })
+      .eq("id", data.id);
+    throw error;
+  }
 }
 
 export async function runCNHSearch(cnh: string, birthDate: string, userId: string) {
@@ -74,37 +95,59 @@ export async function runCNHSearch(cnh: string, birthDate: string, userId: strin
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message || "Failed to create request");
+    throw new Error(error?.message || "Falha ao criar solicitação de busca");
   }
 
-  const response = await searchDriverByCNH(cnh, birthDate);
-  const protocol = (response as any).protocolo || (response as any).protocol;
+  try {
+    const response = await searchDriverByCNH(cnh, birthDate);
+    const protocol = (response as any).protocolo || (response as any).protocol;
 
-  await supabase
-    .from("infosimples_requests")
-    .update({ protocol, status: "running" })
-    .eq("id", data.id);
+    await supabase
+      .from("infosimples_requests")
+      .update({ protocol, status: "running" })
+      .eq("id", data.id);
 
-  return { requestId: data.id, protocol };
+    return { requestId: data.id, protocol };
+  } catch (error) {
+    await supabase
+      .from("infosimples_requests")
+      .update({ status: "error" })
+      .eq("id", data.id);
+    throw error;
+  }
 }
 
 export async function pollResult(requestId: string, protocol: string) {
-  const status = await getConsultationStatus(protocol);
-  if ((status as any).status !== "concluido") {
-    return status;
+  try {
+    // Verificar status da consulta
+    const status = await getConsultationStatus(protocol);
+    
+    if ((status as any).status !== "concluido") {
+      return status;
+    }
+
+    // Se concluído, buscar resultado
+    const result = await getConsultationResult(protocol);
+
+    // Salvar resultado no banco
+    await supabase.from("infosimples_results").insert({
+      request_id: requestId,
+      result_data: result,
+    });
+
+    // Atualizar status da request
+    await supabase
+      .from("infosimples_requests")
+      .update({ status: "completed" })
+      .eq("id", requestId);
+
+    return result;
+  } catch (error) {
+    // Marcar como erro
+    await supabase
+      .from("infosimples_requests")
+      .update({ status: "error" })
+      .eq("id", requestId);
+    throw error;
   }
-
-  const result = await getConsultationResult(protocol);
-
-  await supabase.from("infosimples_results").insert({
-    request_id: requestId,
-    result_data: result,
-  });
-
-  await supabase
-    .from("infosimples_requests")
-    .update({ status: "completed" })
-    .eq("id", requestId);
-
-  return result;
 }

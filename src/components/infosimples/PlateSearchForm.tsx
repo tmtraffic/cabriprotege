@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import * as InfosimplesService from "@/services/api/infosimples-service";
@@ -30,11 +31,20 @@ export default function PlateSearchForm() {
 
   const startSearch = async () => {
     if (!user) {
-      toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
+      toast({ 
+        title: "Erro", 
+        description: "Usuário não autenticado", 
+        variant: "destructive" 
+      });
       return;
     }
+    
     if (!plate || plate.length < 7) {
-      toast({ title: "Placa inválida", variant: "destructive" });
+      toast({ 
+        title: "Placa inválida", 
+        description: "Digite uma placa válida",
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -43,6 +53,8 @@ export default function PlateSearchForm() {
       setResult(null);
       const cleaned = plate.replace(/-/g, "");
       const { requestId, protocol } = await InfosimplesService.runPlateSearch(cleaned, user.id);
+      
+      // Polling para resultado
       const poll = setInterval(async () => {
         try {
           const data = await InfosimplesService.pollResult(requestId, protocol);
@@ -50,16 +62,28 @@ export default function PlateSearchForm() {
             clearInterval(poll);
             setResult(data);
             setLoading(false);
+            toast({
+              title: "Consulta concluída",
+              description: "Resultado da busca carregado com sucesso"
+            });
           }
         } catch (err: any) {
           clearInterval(poll);
           setLoading(false);
-          toast({ title: "Erro", description: err.message, variant: "destructive" });
+          toast({ 
+            title: "Erro", 
+            description: err.message, 
+            variant: "destructive" 
+          });
         }
       }, 5000);
     } catch (err: any) {
       setLoading(false);
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Erro", 
+        description: err.message, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -70,21 +94,34 @@ export default function PlateSearchForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 max-w-xs">
-          <Input value={plate} onChange={handleChange} placeholder="AAA-0A00" />
-          <Button onClick={startSearch} disabled={!plate || loading}>
+          <Input 
+            value={plate} 
+            onChange={handleChange} 
+            placeholder="AAA-0A00"
+            maxLength={8}
+          />
+          <Button 
+            onClick={startSearch} 
+            disabled={!plate || loading || plate.length < 7}
+          >
             {loading ? <LoadingSpinner size="sm" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
+        
         {loading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <LoadingSpinner size="sm" />
-            <span>Consultando...</span>
+            <span>Consultando... Aguarde alguns segundos.</span>
           </div>
         )}
+        
         {result && (
-          <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm">
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <div className="mt-4">
+            <h4 className="font-medium mb-2">Resultado da Consulta:</h4>
+            <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          </div>
         )}
       </CardContent>
     </Card>

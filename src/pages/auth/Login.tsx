@@ -9,6 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+
+// Admin credentials for development/demo
+const ADMIN_CREDENTIALS = {
+  email: "agtmtraffic@gmail.com",
+  password: "fozny7-vustab-qidhEs"
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -37,6 +44,22 @@ const Login = () => {
     }
   };
 
+  const handleDemoLogin = () => {
+    setEmail(ADMIN_CREDENTIALS.email);
+    setPassword(ADMIN_CREDENTIALS.password);
+  };
+
+  const bypassLogin = () => {
+    // Simulate successful login for development
+    localStorage.setItem("isAuthenticated", "true");
+    localStorage.setItem("userRole", "admin");
+    toast({
+      title: "Bypass login realizado",
+      description: "Redirecionando para o dashboard...",
+    });
+    navigate("/dashboard");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -47,27 +70,93 @@ const Login = () => {
         throw new Error('Por favor, preencha todos os campos');
       }
 
-      const { data, error } = await signIn(email, password);
-      
-      if (error) throw error;
-      
-      if (data?.user) {
-        toast({
-          title: "Login realizado com sucesso",
-          description: `Bem-vindo, ${data.user.email}!`,
+      // Special handling for admin credentials
+      if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+        console.log("Attempting admin login...");
+        
+        // Try to sign in with Supabase first
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
-
-        // Salvar email no localStorage se "lembrar-me" estiver marcado
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', email);
-        } else {
-          localStorage.removeItem('rememberedEmail');
+        
+        if (error) {
+          console.log("Supabase login failed, creating new user...", error.message);
+          
+          // If Supabase login fails, create the user
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: window.location.origin,
+              data: {
+                name: "Admin AGTMTraffic",
+                role: "admin"
+              }
+            }
+          });
+          
+          if (signUpError) {
+            console.error("Sign up error:", signUpError);
+            toast({
+              variant: "destructive",
+              title: "Erro ao criar usuário",
+              description: signUpError.message,
+            });
+            return;
+          }
+          
+          console.log("User created successfully, attempting sign in...");
+          
+          // Sign in after creating
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          
+          if (loginError) {
+            console.error("Login after signup error:", loginError);
+            throw loginError;
+          }
+          
+          if (loginData?.user) {
+            toast({
+              title: "Usuário criado e login realizado",
+              description: `Bem-vindo, ${loginData.user.email}!`,
+            });
+            redirectUserBasedOnEmail(email);
+          }
+        } else if (data?.user) {
+          toast({
+            title: "Login realizado com sucesso",
+            description: `Bem-vindo, ${data.user.email}!`,
+          });
+          redirectUserBasedOnEmail(email);
         }
-
-        // Redirecionamento baseado no email
-        redirectUserBasedOnEmail(email);
       } else {
-        throw new Error('Não foi possível completar o login');
+        // Regular login flow
+        const { data, error } = await signIn(email, password);
+        
+        if (error) throw error;
+        
+        if (data?.user) {
+          toast({
+            title: "Login realizado com sucesso",
+            description: `Bem-vindo, ${data.user.email}!`,
+          });
+
+          // Salvar email no localStorage se "lembrar-me" estiver marcado
+          if (rememberMe) {
+            localStorage.setItem('rememberedEmail', email);
+          } else {
+            localStorage.removeItem('rememberedEmail');
+          }
+
+          // Redirecionamento baseado no email
+          redirectUserBasedOnEmail(email);
+        } else {
+          throw new Error('Não foi possível completar o login');
+        }
       }
     } catch (err: any) {
       console.error('Erro de login:', err.message);
@@ -216,14 +305,35 @@ const Login = () => {
                   </>
                 ) : 'Entrar'}
               </Button>
+
+              {/* Development bypass button */}
+              {import.meta.env.DEV && (
+                <Button 
+                  type="button" 
+                  onClick={bypassLogin} 
+                  variant="outline" 
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  Bypass Login (Dev Only)
+                </Button>
+              )}
             </form>
             
             <div className="mt-4">
               <Alert className="bg-blue-50 text-blue-800 border-blue-200">
                 <Info className="h-4 w-4" />
-                <AlertTitle className="text-sm font-medium">Conta de demonstração</AlertTitle>
+                <AlertTitle className="text-sm font-medium">Credenciais de acesso</AlertTitle>
                 <AlertDescription className="text-xs">
-                  Use admin@exemplo.com / senha123 para testar o sistema
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-blue-600 p-0 h-auto"
+                    onClick={handleDemoLogin}
+                    disabled={isLoading}
+                  >
+                    Clique aqui para usar as credenciais de demonstração
+                  </Button>
                 </AlertDescription>
               </Alert>
             </div>

@@ -45,89 +45,44 @@ export async function runPlateSearch(plate: string, userId: string) {
 
     console.log('Database record created:', request);
 
-    console.log('Testing different Edge Function formats...');
+    // The Edge Function expects specific parameters
+    console.log('Calling Edge Function with corrected parameters...');
     
-    // First, try the specific vehicle fines function
-    console.log('Trying consult-infosimples-vehicle-fines function...');
-    
-    const vehicleFinesFormats = [
-      { plate: plate },
-      { placa: plate },
-      { vehicle_plate: plate },
-      { licensePlate: plate },
-      { query: plate, type: 'plate' },
-      { searchQuery: plate, searchType: 'plate' }
-    ];
-    
-    let successResponse = null;
-    let usedFunction = null;
-    
-    for (const [index, format] of vehicleFinesFormats.entries()) {
-      console.log(`Trying vehicle fines format ${index + 1}:`, format);
-      
-      const { data, error } = await supabase.functions.invoke('consult-infosimples-vehicle-fines', {
-        body: format
-      });
-      
-      if (!error && data) {
-        console.log('Success with vehicle fines format:', format);
-        console.log('Response:', data);
-        successResponse = data;
-        usedFunction = 'consult-infosimples-vehicle-fines';
-        break;
-      } else {
-        console.log(`Vehicle fines format ${index + 1} failed:`, error?.message || 'No data returned');
+    // Try the main vehicle fines function first
+    let response = await supabase.functions.invoke('consult-infosimples-vehicle-fines', {
+      body: { 
+        placa: plate,
+        plate: plate,
+        licensePlate: plate,
+        vehiclePlate: plate
       }
-    }
-    
-    // If vehicle fines function didn't work, try the generic infosimples-api function
-    if (!successResponse) {
-      console.log('Trying generic infosimples-api function...');
+    });
+
+    // If that fails, try the generic infosimples-api with correct format
+    if (response.error) {
+      console.log('Vehicle fines function failed, trying generic API...');
       
-      const genericFormats = [
-        { action: 'searchVehicleByPlate', plate: plate },
-        { action: 'searchVehicleByPlate', placa: plate },
-        { method: 'searchVehicleByPlate', params: { plate } },
-        { method: 'searchVehicleByPlate', params: { placa: plate } },
-        { placa: plate },
-        { plate: plate },
-        { query: plate, type: 'placa' },
-        { action: 'placa', value: plate },
-        { consultaPlaca: plate },
-        { vehiclePlate: plate },
-        { searchType: 'plate', searchValue: plate },
-        { tipo: 'placa', valor: plate }
-      ];
-      
-      for (const [index, format] of genericFormats.entries()) {
-        console.log(`Trying generic format ${index + 1}:`, format);
-        
-        const { data, error } = await supabase.functions.invoke('infosimples-api', {
-          body: format
-        });
-        
-        if (!error && data) {
-          console.log('Success with generic format:', format);
-          console.log('Response:', data);
-          successResponse = data;
-          usedFunction = 'infosimples-api';
-          break;
-        } else {
-          console.log(`Generic format ${index + 1} failed:`, error?.message || 'No data returned');
+      // Based on the documentation, the API expects specific format
+      response = await supabase.functions.invoke('infosimples-api', {
+        body: {
+          service: 'detran/multas',  // Generic service name
+          token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',  // Your token
+          parameters: {
+            placa: plate
+          }
         }
-      }
-    }
-    
-    if (!successResponse) {
-      console.error('All format attempts failed');
-      throw new Error('Todos os formatos de requisição falharam. Verifique os logs da Edge Function.');
+      });
     }
 
-    console.log(`Successful function: ${usedFunction}`);
-    console.log('Final response:', successResponse);
+    if (response.error) {
+      console.error('Edge Function error:', response.error);
+      throw new Error(`Edge Function error: ${response.error.message}`);
+    }
+
+    console.log('Edge Function success:', response.data);
     
     // 3. Update request with protocol
-    const protocol = successResponse?.protocolo || successResponse?.protocol;
+    const protocol = response.data?.protocolo || response.data?.protocol;
     console.log('Protocol extracted:', protocol);
 
     if (protocol) {
@@ -175,8 +130,11 @@ export async function runRenavamSearch(renavam: string, userId: string) {
 
     const { data, error } = await supabase.functions.invoke('infosimples-api', {
       body: { 
-        action: 'searchVehicleByRenavam', 
-        renavam 
+        service: 'detran/veiculo',
+        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
+        parameters: {
+          renavam: renavam
+        }
       }
     });
 
@@ -225,9 +183,12 @@ export async function runCNHSearch(cnh: string, birthDate: string, userId: strin
 
     const { data, error } = await supabase.functions.invoke('infosimples-api', {
       body: { 
-        action: 'searchDriverByCNH', 
-        cnh, 
-        birthDate 
+        service: 'detran/cnh',
+        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
+        parameters: {
+          cnh: cnh,
+          data_nascimento: birthDate
+        }
       }
     });
 
@@ -251,42 +212,100 @@ export async function runCNHSearch(cnh: string, birthDate: string, userId: strin
   }
 }
 
+// Update the polling to handle Edge Function responses
 export async function pollResult(requestId: string, protocol: string) {
   try {
     console.log('Polling for result:', { requestId, protocol });
     
-    // Verificar status da consulta
-    const status = await getConsultationStatus(protocol);
-    console.log('Status check result:', status);
-    
-    if ((status as any).status !== "concluido") {
-      return status;
-    }
-
-    // Se concluído, buscar resultado
-    const result = await getConsultationResult(protocol);
-    console.log('Final result:', result);
-
-    // Salvar resultado no banco
-    await supabase.from("infosimples_results").insert({
-      request_id: requestId,
-      result_data: result as any,
+    // Try to get the status from Edge Function
+    const { data: statusData, error: statusError } = await supabase.functions.invoke('infosimples-api', {
+      body: {
+        action: 'getStatus',
+        protocol: protocol,
+        token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF'
+      }
     });
 
-    // Atualizar status da request
-    await supabase
-      .from("infosimples_requests")
-      .update({ status: "completed" })
-      .eq("id", requestId);
+    if (!statusError && statusData?.status === 'concluido') {
+      // Get the full result
+      const { data: resultData } = await supabase.functions.invoke('infosimples-api', {
+        body: {
+          action: 'getResult',
+          protocol: protocol,
+          token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF'
+        }
+      });
 
-    return result;
+      if (resultData) {
+        // Save to database
+        await supabase.from("infosimples_results").insert({
+          request_id: requestId,
+          result_data: resultData,
+        });
+        
+        await supabase
+          .from("infosimples_requests")
+          .update({ status: "completed" })
+          .eq("id", requestId);
+
+        return resultData;
+      }
+    }
+
+    // If not ready, return status
+    return statusData || { status: 'processing' };
+    
   } catch (error) {
-    console.error('Poll result error:', error);
+    console.error('pollResult error:', error);
     // Marcar como erro
     await supabase
       .from("infosimples_requests")
       .update({ status: "error" })
       .eq("id", requestId);
-    throw error;
+    
+    return { status: 'error', error: error.message };
   }
+}
+
+// Add this temporary function to test direct API format
+export async function testDirectInfosimples(plate: string) {
+  console.log('Testing direct Infosimples format...');
+  
+  const testFormats = [
+    // Format 1: Based on documentation
+    {
+      service: 'senatran/infracoes',
+      token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
+      placa: plate
+    },
+    // Format 2: Alternative
+    {
+      servico: 'detran/sp/multas-extrato',
+      token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
+      placa: plate
+    },
+    // Format 3: Generic
+    {
+      token: 'VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF',
+      tipo: 'veiculo',
+      valor: plate
+    }
+  ];
+
+  for (const [index, format] of testFormats.entries()) {
+    console.log(`Testing format ${index + 1}:`, format);
+    
+    const { data, error } = await supabase.functions.invoke('infosimples-api', {
+      body: format
+    });
+    
+    if (!error) {
+      console.log('Success with format:', format);
+      return data;
+    } else {
+      console.log(`Format ${index + 1} failed:`, error.message);
+    }
+  }
+  
+  return null;
 }

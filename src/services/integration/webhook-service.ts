@@ -1,4 +1,4 @@
-import { toast } from "@/components/ui/sonner";
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -155,10 +155,7 @@ export async function testWebhook(webhook: Webhook): Promise<boolean> {
       failCount: 0
     });
     
-    toast({
-      title: "Webhook Test Successful",
-      description: "The test event was sent successfully.",
-    });
+    console.log("Webhook test successful - The test event was sent successfully.");
     
     return true;
   } catch (error) {
@@ -173,11 +170,7 @@ export async function testWebhook(webhook: Webhook): Promise<boolean> {
       });
     }
     
-    toast({
-      title: "Webhook Test Failed",
-      description: error instanceof Error ? error.message : "Unknown error",
-      variant: "destructive",
-    });
+    console.error("Webhook test failed:", error instanceof Error ? error.message : "Unknown error");
     
     return false;
   }

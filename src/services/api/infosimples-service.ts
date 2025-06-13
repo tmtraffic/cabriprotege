@@ -1,12 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import {
-  searchVehicleByPlate,
-  searchVehicleByRenavam,
-  searchDriverByCNH,
-  getConsultationStatus,
-  getConsultationResult,
-} from "./infosimples-api";
+import { getConsultationStatus, getConsultationResult } from "./infosimples-api";
 
 export async function runPlateSearch(plate: string, userId: string) {
   console.log('runPlateSearch called:', { plate, userId });
@@ -30,124 +24,164 @@ export async function runPlateSearch(plate: string, userId: string) {
     throw new Error('ID do usuário não confere com a sessão');
   }
 
-  // Criar registro na tabela de requests
-  console.log('Creating infosimples_requests record...');
-  const { data, error } = await supabase
-    .from("infosimples_requests")
-    .insert({
-      user_id: userId,
-      search_type: "plate",
-      search_query: plate,
-      status: "pending",
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    console.error('Database insert error:', error);
-    throw new Error(error?.message || "Falha ao criar solicitação de busca");
-  }
-
-  console.log('Database record created:', data);
-
   try {
-    // Executar busca via API
-    console.log('Executing API search...');
-    const response = await searchVehicleByPlate(plate);
-    console.log('API response received:', response);
-    
-    const protocol = (response as any).protocolo || (response as any).protocol;
-    console.log('Protocol extracted:', protocol);
-
-    // Atualizar com o protocolo
-    console.log('Updating database with protocol...');
-    const { error: updateError } = await supabase
+    // 1. Save request to database
+    console.log('Creating infosimples_requests record...');
+    const { data: request, error: dbError } = await supabase
       .from("infosimples_requests")
-      .update({ protocol, status: "running" })
-      .eq("id", data.id);
-
-    if (updateError) {
-      console.error('Database update error:', updateError);
+      .insert({ 
+        user_id: userId, 
+        search_type: "plate", 
+        search_query: plate,
+        status: "pending"
+      })
+      .select("id")
+      .single();
+      
+    if (dbError || !request) {
+      console.error('Database insert error:', dbError);
+      throw new Error(dbError?.message || "Falha ao criar solicitação de busca");
     }
 
-    return { requestId: data.id, protocol };
+    console.log('Database record created:', request);
+
+    // 2. Call Edge Function instead of direct API
+    console.log('Calling Edge Function infosimples-api...');
+    const { data, error } = await supabase.functions.invoke('infosimples-api', {
+      body: { 
+        action: 'searchVehicleByPlate',
+        plate: plate 
+      }
+    });
+
+    if (error) {
+      console.error('Edge Function error:', error);
+      throw new Error(`Erro na função: ${error.message}`);
+    }
+
+    console.log('Edge Function response:', data);
+    
+    // 3. Update request with protocol
+    const protocol = data?.protocolo || data?.protocol;
+    console.log('Protocol extracted:', protocol);
+
+    if (protocol) {
+      console.log('Updating database with protocol...');
+      const { error: updateError } = await supabase
+        .from("infosimples_requests")
+        .update({ protocol, status: "running" })
+        .eq("id", request.id);
+
+      if (updateError) {
+        console.error('Database update error:', updateError);
+      }
+    }
+
+    return { requestId: request.id, protocol };
+    
   } catch (error) {
-    console.error('API search error:', error);
-    // Marcar como erro se falhar
-    await supabase
-      .from("infosimples_requests")
-      .update({ status: "error" })
-      .eq("id", data.id);
+    console.error('runPlateSearch error:', error);
     throw error;
   }
 }
 
 export async function runRenavamSearch(renavam: string, userId: string) {
-  const { data, error } = await supabase
-    .from("infosimples_requests")
-    .insert({
-      user_id: userId,
-      search_type: "renavam",
-      search_query: renavam,
-      status: "pending",
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    throw new Error(error?.message || "Falha ao criar solicitação de busca");
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Usuário não autenticado no sistema');
   }
 
   try {
-    const response = await searchVehicleByRenavam(renavam);
-    const protocol = (response as any).protocolo || (response as any).protocol;
-
-    await supabase
+    const { data: request, error: dbError } = await supabase
       .from("infosimples_requests")
-      .update({ protocol, status: "running" })
-      .eq("id", data.id);
+      .insert({ 
+        user_id: userId, 
+        search_type: "renavam", 
+        search_query: renavam,
+        status: "pending"
+      })
+      .select("id")
+      .single();
 
-    return { requestId: data.id, protocol };
+    if (dbError || !request) {
+      throw new Error(dbError?.message || "Falha ao criar solicitação de busca");
+    }
+
+    const { data, error } = await supabase.functions.invoke('infosimples-api', {
+      body: { 
+        action: 'searchVehicleByRenavam', 
+        renavam 
+      }
+    });
+
+    if (error) {
+      throw new Error(`Erro na função: ${error.message}`);
+    }
+
+    const protocol = data?.protocolo || data?.protocol;
+    
+    if (protocol) {
+      await supabase
+        .from("infosimples_requests")
+        .update({ protocol, status: "running" })
+        .eq("id", request.id);
+    }
+
+    return { requestId: request.id, protocol };
   } catch (error) {
-    await supabase
-      .from("infosimples_requests")
-      .update({ status: "error" })
-      .eq("id", data.id);
+    console.error('runRenavamSearch error:', error);
     throw error;
   }
 }
 
 export async function runCNHSearch(cnh: string, birthDate: string, userId: string) {
-  const { data, error } = await supabase
-    .from("infosimples_requests")
-    .insert({
-      user_id: userId,
-      search_type: "cnh",
-      search_query: cnh,
-      status: "pending",
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    throw new Error(error?.message || "Falha ao criar solicitação de busca");
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Usuário não autenticado no sistema');
   }
 
   try {
-    const response = await searchDriverByCNH(cnh, birthDate);
-    const protocol = (response as any).protocolo || (response as any).protocol;
-
-    await supabase
+    const { data: request, error: dbError } = await supabase
       .from("infosimples_requests")
-      .update({ protocol, status: "running" })
-      .eq("id", data.id);
+      .insert({ 
+        user_id: userId, 
+        search_type: "cnh", 
+        search_query: cnh,
+        status: "pending"
+      })
+      .select("id")
+      .single();
 
-    return { requestId: data.id, protocol };
+    if (dbError || !request) {
+      throw new Error(dbError?.message || "Falha ao criar solicitação de busca");
+    }
+
+    const { data, error } = await supabase.functions.invoke('infosimples-api', {
+      body: { 
+        action: 'searchDriverByCNH', 
+        cnh, 
+        birthDate 
+      }
+    });
+
+    if (error) {
+      throw new Error(`Erro na função: ${error.message}`);
+    }
+
+    const protocol = data?.protocolo || data?.protocol;
+    
+    if (protocol) {
+      await supabase
+        .from("infosimples_requests")
+        .update({ protocol, status: "running" })
+        .eq("id", request.id);
+    }
+
+    return { requestId: request.id, protocol };
   } catch (error) {
-    await supabase
-      .from("infosimples_requests")
-      .update({ status: "error" })
-      .eq("id", data.id);
+    console.error('runCNHSearch error:', error);
     throw error;
   }
 }

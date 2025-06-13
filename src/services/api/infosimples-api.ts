@@ -2,9 +2,12 @@ import { useToast } from "@/hooks/use-toast";
 
 const INFOSIMPLES_API_BASE_URL = "https://api.infosimples.com/api/v2";
 
-// Store API credentials securely - in production, these should come from environment variables or user input
-let token = import.meta.env.VITE_INFOSIMPLES_TOKEN || "";
-let email = import.meta.env.VITE_INFOSIMPLES_EMAIL || "";
+// Infosimples API credentials
+let token = import.meta.env.VITE_INFOSIMPLES_TOKEN || localStorage.getItem("infosimples_token") || "VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF";
+let email = import.meta.env.VITE_INFOSIMPLES_EMAIL || localStorage.getItem("infosimples_email") || "agtmtraffic@gmail.com";
+
+// Log the configured credentials
+console.log('Infosimples configured with email:', email);
 
 export const setInfosimplesCredentials = (userEmail: string, apiToken: string) => {
   email = userEmail;

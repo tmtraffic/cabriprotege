@@ -11,6 +11,7 @@ import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import InfosimplesSearch from "./pages/search/InfosimplesSearch";
 
 import BulkImportForm from "./components/import/BulkImportForm";
 import AdvancedSearch from "./components/search/AdvancedSearch";
@@ -27,7 +28,6 @@ const VehicleRegistration = lazy(() => import("./pages/vehicles/VehicleRegistrat
 const ProcessManagement = lazy(() => import("./pages/processes/ProcessManagement"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
-const InfosimplesSearch = lazy(() => import("./pages/search/InfosimplesSearch"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">

@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_consultation_logs: {
+        Row: {
+          api_name: string
+          created_at: string | null
+          elapsed_time_ms: number | null
+          error_message: string | null
+          id: string
+          price: number | null
+          request_params: Json
+          response_code: number | null
+          response_data: Json | null
+          response_message: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_name: string
+          created_at?: string | null
+          elapsed_time_ms?: number | null
+          error_message?: string | null
+          id?: string
+          price?: number | null
+          request_params: Json
+          response_code?: number | null
+          response_data?: Json | null
+          response_message?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string
+          created_at?: string | null
+          elapsed_time_ms?: number | null
+          error_message?: string | null
+          id?: string
+          price?: number | null
+          request_params?: Json
+          response_code?: number | null
+          response_data?: Json | null
+          response_message?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       deadlines: {
         Row: {
           completed: boolean | null
@@ -268,77 +310,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      notification_logs: {
-        Row: {
-          context_data: Json | null
-          created_at: string
-          error_message: string | null
-          id: string
-          recipient: string
-          sent_at: string | null
-          status: string
-          template_id: string | null
-        }
-        Insert: {
-          context_data?: Json | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          recipient: string
-          sent_at?: string | null
-          status?: string
-          template_id?: string | null
-        }
-        Update: {
-          context_data?: Json | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          recipient?: string
-          sent_at?: string | null
-          status?: string
-          template_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_logs_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "notification_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_templates: {
-        Row: {
-          body_template: string
-          created_at: string
-          id: string
-          name: string
-          subject_template: string | null
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          body_template: string
-          created_at?: string
-          id?: string
-          name: string
-          subject_template?: string | null
-          type: string
-          updated_at?: string
-        }
-        Update: {
-          body_template?: string
-          created_at?: string
-          id?: string
-          name?: string
-          subject_template?: string | null
-          type?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       processes: {
         Row: {

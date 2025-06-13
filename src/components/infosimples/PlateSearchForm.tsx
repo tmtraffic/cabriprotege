@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import * as InfosimplesService from "@/services/api/infosimples-service";
-import { Search } from "lucide-react";
+import { Search, Car, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function formatPlate(value: string) {
   const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -18,12 +19,17 @@ function formatPlate(value: string) {
   return formatted.slice(0, 8);
 }
 
+interface SearchResult {
+  vehicle?: any;
+  multas?: any;
+}
+
 export default function PlateSearchForm() {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const [plate, setPlate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<SearchResult | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlate(formatPlate(e.target.value));
@@ -32,8 +38,6 @@ export default function PlateSearchForm() {
   const startSearch = async () => {
     console.log('Starting search...');
     console.log('User:', user);
-    console.log('User ID:', user?.id);
-    console.log('User session:', user?.aud);
     
     if (!user) {
       console.error('No user found in context');
@@ -58,62 +62,72 @@ export default function PlateSearchForm() {
       setLoading(true);
       setResult(null);
       
-      // Before calling the API, check credentials
-      console.log('Checking Infosimples credentials...');
-      
       const cleaned = plate.replace(/[^A-Z0-9]/g, "");
       
-      // Log the request details
       console.log('Calling runPlateSearch with:', {
         plate: cleaned,
         userId: user.id,
         userEmail: user.email
       });
       
-      const { requestId, protocol } = await InfosimplesService.runPlateSearch(cleaned, user.id);
+      // First get vehicle data
+      const vehicleResult = await InfosimplesService.runPlateSearch(cleaned, user.id);
       
-      console.log('Search initiated successfully:', { requestId, protocol });
+      console.log('Vehicle result:', vehicleResult);
       
-      // Polling para resultado
-      const poll = setInterval(async () => {
+      let finalResult: SearchResult = {
+        vehicle: vehicleResult.vehicleData
+      };
+
+      // If we have RENAVAM and can extract CPF, search for fines
+      if (vehicleResult.vehicleData?.renavam) {
         try {
-          console.log('Polling for result...');
-          const data = await InfosimplesService.pollResult(requestId, protocol);
-          if (data && !(data as any).status) {
-            clearInterval(poll);
-            setResult(data);
-            setLoading(false);
-            toast({
-              title: "Consulta concluída",
-              description: "Resultado da busca carregado com sucesso"
-            });
-          }
-        } catch (err: any) {
-          console.error('Polling error:', err);
-          clearInterval(poll);
-          setLoading(false);
-          toast({ 
-            title: "Erro no polling", 
-            description: err.message, 
-            variant: "destructive" 
-          });
+          // Try to extract CPF from email or use a placeholder
+          const cpfMatch = user.email?.match(/\d{11}/);
+          const cpf = cpfMatch?.[0] || '00000000000'; // Fallback CPF
+          
+          console.log('Searching for multas with RENAVAM:', vehicleResult.vehicleData.renavam);
+          
+          const multasResult = await InfosimplesService.runMultasSearch(
+            vehicleResult.vehicleData.renavam,
+            cpf,
+            user.id
+          );
+          
+          console.log('Multas result:', multasResult);
+          finalResult.multas = multasResult;
+        } catch (multasError) {
+          console.error('Error fetching multas:', multasError);
+          // Continue without multas data
         }
-      }, 5000);
+      }
+      
+      setResult(finalResult);
+      toast({
+        title: "Consulta concluída",
+        description: "Dados do veículo carregados com sucesso"
+      });
+      
     } catch (err: any) {
       console.error('Search error:', err);
-      setLoading(false);
+      setResult(null);
       toast({ 
         title: "Erro na Consulta", 
         description: `Erro: ${err.message || 'Falha na consulta'}`, 
         variant: "destructive" 
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Consulta por Placa</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Car className="h-5 w-5" />
+          Consulta por Placa
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 max-w-xs">
@@ -122,6 +136,7 @@ export default function PlateSearchForm() {
             onChange={handleChange} 
             placeholder="AAA-0A00"
             maxLength={8}
+            disabled={loading}
           />
           <Button 
             onClick={startSearch} 
@@ -132,18 +147,53 @@ export default function PlateSearchForm() {
         </div>
         
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Alert>
             <LoadingSpinner size="sm" />
-            <span>Consultando... Aguarde alguns segundos.</span>
-          </div>
+            <AlertDescription>
+              Consultando dados do veículo e multas... Aguarde alguns segundos.
+            </AlertDescription>
+          </Alert>
         )}
         
         {result && (
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Resultado da Consulta:</h4>
-            <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+          <div className="mt-4 space-y-4">
+            {result.vehicle && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Dados do Veículo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
+                    {JSON.stringify(result.vehicle, null, 2)}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
+            
+            {result.multas && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Multas e Infrações
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
+                    {JSON.stringify(result.multas, null, 2)}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
+            
+            {!result.multas && result.vehicle && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Dados de multas não disponíveis. Isso pode ocorrer se o RENAVAM não estiver disponível ou se não foi possível identificar o CPF do proprietário.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
       </CardContent>

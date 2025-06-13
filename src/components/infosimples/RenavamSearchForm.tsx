@@ -1,121 +1,65 @@
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import * as InfosimplesService from "@/services/api/infosimples-service";
-import { Search } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Hash, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function RenavamSearchForm() {
   const { user } = useSupabaseAuth();
-  const { toast } = useToast();
   const [renavam, setRenavam] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
-
-  const formatRenavam = (val: string) => val.replace(/\D/g, "").slice(0, 11);
 
   const startSearch = async () => {
     if (!user) {
-      toast({ 
-        title: "Erro", 
-        description: "Usuário não autenticado", 
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    if (renavam.length < 9) {
-      toast({ 
-        title: "RENAVAM inválido", 
-        description: "Digite um RENAVAM válido (mínimo 9 dígitos)",
-        variant: "destructive" 
-      });
+      toast.error("Você precisa estar logado para fazer consultas");
       return;
     }
 
-    try {
-      setLoading(true);
-      setResult(null);
-      const { requestId, protocol } = await InfosimplesService.runRenavamSearch(renavam, user.id);
-      
-      // Polling para resultado
-      const poll = setInterval(async () => {
-        try {
-          const data = await InfosimplesService.pollResult(requestId, protocol);
-          if (data && !(data as any).status) {
-            clearInterval(poll);
-            setResult(data);
-            setLoading(false);
-            toast({
-              title: "Consulta concluída",
-              description: "Resultado da busca carregado com sucesso"
-            });
-          }
-        } catch (err: any) {
-          clearInterval(poll);
-          setLoading(false);
-          toast({ 
-            title: "Erro", 
-            description: err.message, 
-            variant: "destructive" 
-          });
-        }
-      }, 5000);
-    } catch (err: any) {
-      setLoading(false);
-      toast({ 
-        title: "Erro", 
-        description: err.message, 
-        variant: "destructive" 
-      });
-    }
+    // Temporarily disabled
+    toast.error("Consulta por RENAVAM temporariamente indisponível. Use a consulta por placa.");
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Consulta por RENAVAM</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Hash className="h-5 w-5" />
+          Consulta por RENAVAM
+        </CardTitle>
+        <CardDescription>
+          Digite o número do RENAVAM do veículo
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2 max-w-xs">
-          <Label htmlFor="renavam">Número do RENAVAM</Label>
-          <div className="flex gap-2">
-            <Input
-              id="renavam"
-              value={renavam}
-              onChange={(e) => setRenavam(formatRenavam(e.target.value))}
-              placeholder="Digite o RENAVAM"
-              maxLength={11}
-            />
-            <Button 
-              onClick={startSearch} 
-              disabled={!renavam || loading || renavam.length < 9}
-            >
-              {loading ? <LoadingSpinner size="sm" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-700">
+            Esta funcionalidade está temporariamente indisponível. 
+            Por favor, use a consulta por placa.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="space-y-4 opacity-50">
+          <Input
+            value={renavam}
+            onChange={(e) => setRenavam(e.target.value)}
+            placeholder="Número do RENAVAM"
+            maxLength={11}
+            disabled={true}
+          />
+          <Button 
+            disabled={true} 
+            onClick={startSearch}
+            className="w-full"
+          >
+            <Loader2 className="mr-2 h-4 w-4 animate-spin hidden" />
+            Temporariamente Indisponível
+          </Button>
         </div>
-        
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <LoadingSpinner size="sm" />
-            <span>Consultando... Aguarde alguns segundos.</span>
-          </div>
-        )}
-        
-        {result && (
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Resultado da Consulta:</h4>
-            <pre className="whitespace-pre-wrap break-all rounded bg-muted p-4 text-sm max-h-96 overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

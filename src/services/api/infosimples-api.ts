@@ -4,8 +4,8 @@ import { toast } from "@/components/ui/sonner";
 const INFOSIMPLES_API_BASE_URL = "https://api.infosimples.com/api/v2";
 
 // Store API credentials securely - in production, these should come from environment variables or user input
-let token = "";
-let email = "";
+let token = import.meta.env.VITE_INFOSIMPLES_TOKEN || "";
+let email = import.meta.env.VITE_INFOSIMPLES_EMAIL || "";
 
 export const setInfosimplesCredentials = (userEmail: string, apiToken: string) => {
   email = userEmail;

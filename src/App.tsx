@@ -27,6 +27,7 @@ const VehicleRegistration = lazy(() => import("./pages/vehicles/VehicleRegistrat
 const ProcessManagement = lazy(() => import("./pages/processes/ProcessManagement"));
 const ClientProfile = lazy(() => import("./pages/clients/ClientProfile"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
+const InfosimplesSearch = lazy(() => import("./pages/search/InfosimplesSearch"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -102,6 +103,8 @@ const App = () => (
           <Route path="/import" element={<Layout userRole="admin"><BulkImportForm /></Layout>} />
           
           <Route path="/search" element={<Layout userRole="admin"><AdvancedSearch /></Layout>} />
+
+          <Route path="/search/infosimples" element={<Layout userRole="admin"><InfosimplesSearch /></Layout>} />
           
           <Route path="/crm" element={<Layout userRole="admin"><LeadManagement /></Layout>} />
           

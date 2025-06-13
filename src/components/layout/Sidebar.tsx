@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { FileSearch } from "lucide-react";
 
 // Import components
 import SidebarUser from "./sidebar/SidebarUser";
@@ -24,7 +25,14 @@ const Sidebar = ({ isOpen, userRole = "admin" }: SidebarProps) => {
   };
 
   // Get menu items based on user role
-  const menuItems = getRoleMenuItems(userRole);
+  const menuItems = [
+    ...getRoleMenuItems(userRole),
+    {
+      title: "Consultas Infosimples",
+      href: "/search/infosimples",
+      icon: FileSearch,
+    },
+  ];
 
   return (
     <aside

@@ -1,5 +1,6 @@
-
 import { toast } from "@/components/ui/sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // Define webhook types
 export interface Webhook {
@@ -269,5 +270,50 @@ export async function triggerWebhook(eventType: string, data: any): Promise<void
     await Promise.allSettled(promises);
   } catch (error) {
     console.error("Failed to trigger webhooks:", error);
+  }
+}
+
+export async function sendWebhookNotification(
+  url: string,
+  data: any,
+  headers: Record<string, string> = {}
+) {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook failed with status: ${response.status}`);
+    }
+
+    // Log successful webhook
+    console.log('Webhook sent successfully:', { url, status: response.status });
+    
+    return { success: true, status: response.status };
+  } catch (error) {
+    console.error('Webhook error:', error);
+    throw error;
+  }
+}
+
+export async function testWebhookEndpoint(url: string, headers: Record<string, string> = {}) {
+  try {
+    const testData = {
+      event: 'test',
+      timestamp: new Date().toISOString(),
+      data: { message: 'This is a test webhook from CabriProtege' }
+    };
+
+    const response = await sendWebhookNotification(url, testData, headers);
+    return response;
+  } catch (error) {
+    console.error('Webhook test failed:', error);
+    throw error;
   }
 }

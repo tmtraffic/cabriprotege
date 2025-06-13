@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const HELENA_API_BASE_URL = "https://api.helena.app/v1";
 
@@ -74,11 +73,7 @@ async function makeRequest<T>({
     return await response.json();
   } catch (error) {
     console.error("Helena API request failed:", error);
-    toast({
-      title: "API Request Failed",
-      description: error instanceof Error ? error.message : "Unknown error",
-      variant: "destructive",
-    });
+    // Don't use toast here directly - let the hook handle it
     throw error;
   }
 }

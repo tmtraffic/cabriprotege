@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as HelenaAPI from '@/services/api/helena-api';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export function useCreateConsult() {
   const { toast } = useToast();
@@ -29,8 +29,9 @@ export function useConsultStatus(consultId: string | null) {
     queryKey: ['consult', 'status', consultId],
     queryFn: () => HelenaAPI.getConsultStatus(consultId!),
     enabled: !!consultId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll more frequently if the status is not completed
+      const data = query.state.data;
       if (data?.status === 'completed' || data?.status === 'failed') {
         return false; // Stop polling
       }
@@ -51,6 +52,6 @@ export function useConsultsList(page = 1, perPage = 10) {
   return useQuery({
     queryKey: ['consults', 'list', page, perPage],
     queryFn: () => HelenaAPI.listConsults(page, perPage),
-    keepPreviousData: true, // Keep previous data while fetching
+    placeholderData: (previousData) => previousData, // Replace keepPreviousData
   });
 }

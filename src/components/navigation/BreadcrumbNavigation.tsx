@@ -29,6 +29,13 @@ const routeNameMap: Record<string, string> = {
   'admin/webhook-config': 'Webhook Configuration',
 };
 
+interface BreadcrumbItem {
+  path: string;
+  label: string;
+  icon?: React.ReactElement;
+  isLast?: boolean;
+}
+
 export function BreadcrumbNavigation() {
   const location = useLocation();
   
@@ -38,10 +45,10 @@ export function BreadcrumbNavigation() {
   }
   
   // Generate breadcrumb items from current path
-  const generateBreadcrumbItems = () => {
+  const generateBreadcrumbItems = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     
-    const breadcrumbItems = [
+    const breadcrumbItems: BreadcrumbItem[] = [
       { path: '/', label: 'Home', icon: <Home className="h-4 w-4" /> }
     ];
     

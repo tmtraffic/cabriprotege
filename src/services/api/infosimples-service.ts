@@ -132,7 +132,7 @@ export async function pollResult(requestId: string, protocol: string) {
     // Salvar resultado no banco
     await supabase.from("infosimples_results").insert({
       request_id: requestId,
-      result_data: result,
+      result_data: result as any, // Cast to any to avoid Json type issues
     });
 
     // Atualizar status da request

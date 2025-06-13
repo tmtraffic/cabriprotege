@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as InfosimplesAPI from '@/services/api/infosimples-api';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export function useVehicleByPlate(plate: string | null) {
   const { toast } = useToast();
@@ -54,8 +54,9 @@ export function useConsultationStatus(protocol: string | null) {
     queryKey: ['consultation', 'status', protocol],
     queryFn: () => InfosimplesAPI.getConsultationStatus(protocol!),
     enabled: !!protocol,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll more frequently if the consultation is not completed
+      const data = query.state.data;
       if (data?.status === 'concluido' || data?.status === 'erro') {
         return false; // Stop polling
       }

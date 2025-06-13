@@ -1,5 +1,4 @@
-
-import { toast } from "@/components/ui/sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const INFOSIMPLES_API_BASE_URL = "https://api.infosimples.com/api/v2";
 
@@ -94,11 +93,7 @@ async function makeRequest<T>({
     return await response.json();
   } catch (error) {
     console.error("Infosimples API request failed:", error);
-    toast({
-      title: "API Request Failed",
-      description: error instanceof Error ? error.message : "Unknown error",
-      variant: "destructive",
-    });
+    // Don't use toast here directly - let the hook handle it
     throw error;
   }
 }

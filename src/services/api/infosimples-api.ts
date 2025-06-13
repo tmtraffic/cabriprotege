@@ -1,23 +1,38 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 const INFOSIMPLES_API_BASE_URL = "https://api.infosimples.com/api/v2";
 
-// Infosimples API credentials
-let token = import.meta.env.VITE_INFOSIMPLES_TOKEN || localStorage.getItem("infosimples_token") || "VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF";
-let email = import.meta.env.VITE_INFOSIMPLES_EMAIL || localStorage.getItem("infosimples_email") || "agtmtraffic@gmail.com";
+// Force credentials for testing
+let token = "VztDoZpEHnuoUZdXH9A1pQEpzJmAZvJ6v_bMsFiF";
+let email = "agtmtraffic@gmail.com";
 
 // Log the configured credentials
-console.log('Infosimples configured with email:', email);
+console.log('Infosimples API initialized with:', {
+  email: email || 'NOT SET',
+  token: token ? 'SET' : 'NOT SET',
+  tokenLength: token ? token.length : 0
+});
 
 export const setInfosimplesCredentials = (userEmail: string, apiToken: string) => {
   email = userEmail;
   token = apiToken;
+  console.log('Credentials updated:', { email, token: token ? 'SET' : 'NOT SET' });
 };
 
 export const getInfosimplesCredentials = () => ({
   email,
   token,
 });
+
+// Export a function to check credentials
+export function checkCredentials() {
+  return { 
+    email, 
+    token: token ? 'SET' : 'NOT SET',
+    tokenLength: token ? token.length : 0
+  };
+}
 
 interface ApiRequestOptions {
   endpoint: string;
@@ -37,8 +52,11 @@ async function makeRequest<T>({
   body = {},
   headers = {},
 }: ApiRequestOptions): Promise<T> {
+  console.log('makeRequest called with:', { endpoint, method, hasToken: !!token, hasEmail: !!email });
+  
   if (!token || !email) {
-    throw new Error("API credentials not set. Please configure your Infosimples credentials.");
+    console.error('Missing credentials:', { email: !!email, token: !!token });
+    throw new Error("Credenciais Infosimples não configuradas. Token ou email não encontrado.");
   }
 
   // Add authentication parameters
@@ -77,8 +95,17 @@ async function makeRequest<T>({
     requestOptions.body = JSON.stringify(body);
   }
 
+  console.log('Making request to:', url.toString());
+  console.log('Request options:', { method, hasBody: !!requestOptions.body });
+
   try {
     const response = await fetch(url.toString(), requestOptions);
+
+    console.log('Response received:', { 
+      status: response.status, 
+      statusText: response.statusText,
+      ok: response.ok
+    });
 
     // Check if response is ok
     if (!response.ok) {
@@ -93,10 +120,11 @@ async function makeRequest<T>({
     }
 
     // Parse response
-    return await response.json();
+    const result = await response.json();
+    console.log('Response parsed successfully:', result);
+    return result;
   } catch (error) {
     console.error("Infosimples API request failed:", error);
-    // Don't use toast here directly - let the hook handle it
     throw error;
   }
 }
@@ -107,6 +135,17 @@ async function makeRequest<T>({
  * Search for vehicle information by plate
  */
 export async function searchVehicleByPlate(plate: string) {
+  console.log('searchVehicleByPlate called with:', plate);
+  console.log('Using credentials:', { 
+    email, 
+    token: token ? 'SET' : 'NOT SET',
+    tokenLength: token ? token.length : 0
+  });
+  
+  if (!email || !token) {
+    throw new Error('Credenciais Infosimples não configuradas');
+  }
+  
   return makeRequest({
     endpoint: "/consultas/placa",
     method: "POST",

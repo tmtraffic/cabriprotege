@@ -30,10 +30,16 @@ export default function PlateSearchForm() {
   };
 
   const startSearch = async () => {
+    console.log('Starting search...');
+    console.log('User:', user);
+    console.log('User ID:', user?.id);
+    console.log('User session:', user?.aud);
+    
     if (!user) {
+      console.error('No user found in context');
       toast({ 
-        title: "Erro", 
-        description: "Usuário não autenticado", 
+        title: "Erro de Autenticação", 
+        description: "Você precisa estar logado para fazer consultas", 
         variant: "destructive" 
       });
       return;
@@ -51,12 +57,27 @@ export default function PlateSearchForm() {
     try {
       setLoading(true);
       setResult(null);
-      const cleaned = plate.replace(/-/g, "");
+      
+      // Before calling the API, check credentials
+      console.log('Checking Infosimples credentials...');
+      
+      const cleaned = plate.replace(/[^A-Z0-9]/g, "");
+      
+      // Log the request details
+      console.log('Calling runPlateSearch with:', {
+        plate: cleaned,
+        userId: user.id,
+        userEmail: user.email
+      });
+      
       const { requestId, protocol } = await InfosimplesService.runPlateSearch(cleaned, user.id);
+      
+      console.log('Search initiated successfully:', { requestId, protocol });
       
       // Polling para resultado
       const poll = setInterval(async () => {
         try {
+          console.log('Polling for result...');
           const data = await InfosimplesService.pollResult(requestId, protocol);
           if (data && !(data as any).status) {
             clearInterval(poll);
@@ -68,20 +89,22 @@ export default function PlateSearchForm() {
             });
           }
         } catch (err: any) {
+          console.error('Polling error:', err);
           clearInterval(poll);
           setLoading(false);
           toast({ 
-            title: "Erro", 
+            title: "Erro no polling", 
             description: err.message, 
             variant: "destructive" 
           });
         }
       }, 5000);
     } catch (err: any) {
+      console.error('Search error:', err);
       setLoading(false);
       toast({ 
-        title: "Erro", 
-        description: err.message, 
+        title: "Erro na Consulta", 
+        description: `Erro: ${err.message || 'Falha na consulta'}`, 
         variant: "destructive" 
       });
     }

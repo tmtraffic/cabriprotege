@@ -9,7 +9,29 @@ import {
 } from "./infosimples-api";
 
 export async function runPlateSearch(plate: string, userId: string) {
+  console.log('runPlateSearch called:', { plate, userId });
+  
+  // Check if user is authenticated in Supabase
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log('Supabase auth check:', { user: !!user, error: authError });
+  
+  if (authError) {
+    console.error('Supabase auth error:', authError);
+    throw new Error(`Erro de autenticação: ${authError.message}`);
+  }
+  
+  if (!user) {
+    console.error('No authenticated user found');
+    throw new Error('Usuário não autenticado no sistema');
+  }
+  
+  if (user.id !== userId) {
+    console.error('User ID mismatch:', { sessionUserId: user.id, providedUserId: userId });
+    throw new Error('ID do usuário não confere com a sessão');
+  }
+
   // Criar registro na tabela de requests
+  console.log('Creating infosimples_requests record...');
   const { data, error } = await supabase
     .from("infosimples_requests")
     .insert({
@@ -22,22 +44,35 @@ export async function runPlateSearch(plate: string, userId: string) {
     .single();
 
   if (error || !data) {
+    console.error('Database insert error:', error);
     throw new Error(error?.message || "Falha ao criar solicitação de busca");
   }
 
+  console.log('Database record created:', data);
+
   try {
     // Executar busca via API
+    console.log('Executing API search...');
     const response = await searchVehicleByPlate(plate);
+    console.log('API response received:', response);
+    
     const protocol = (response as any).protocolo || (response as any).protocol;
+    console.log('Protocol extracted:', protocol);
 
     // Atualizar com o protocolo
-    await supabase
+    console.log('Updating database with protocol...');
+    const { error: updateError } = await supabase
       .from("infosimples_requests")
       .update({ protocol, status: "running" })
       .eq("id", data.id);
 
+    if (updateError) {
+      console.error('Database update error:', updateError);
+    }
+
     return { requestId: data.id, protocol };
   } catch (error) {
+    console.error('API search error:', error);
     // Marcar como erro se falhar
     await supabase
       .from("infosimples_requests")
@@ -119,8 +154,11 @@ export async function runCNHSearch(cnh: string, birthDate: string, userId: strin
 
 export async function pollResult(requestId: string, protocol: string) {
   try {
+    console.log('Polling for result:', { requestId, protocol });
+    
     // Verificar status da consulta
     const status = await getConsultationStatus(protocol);
+    console.log('Status check result:', status);
     
     if ((status as any).status !== "concluido") {
       return status;
@@ -128,11 +166,12 @@ export async function pollResult(requestId: string, protocol: string) {
 
     // Se concluído, buscar resultado
     const result = await getConsultationResult(protocol);
+    console.log('Final result:', result);
 
     // Salvar resultado no banco
     await supabase.from("infosimples_results").insert({
       request_id: requestId,
-      result_data: result as any, // Cast to any to avoid Json type issues
+      result_data: result as any,
     });
 
     // Atualizar status da request
@@ -143,6 +182,7 @@ export async function pollResult(requestId: string, protocol: string) {
 
     return result;
   } catch (error) {
+    console.error('Poll result error:', error);
     // Marcar como erro
     await supabase
       .from("infosimples_requests")

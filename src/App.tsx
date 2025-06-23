@@ -14,7 +14,6 @@ import NotFound from "./pages/NotFound";
 import InfosimplesSearch from "./pages/search/InfosimplesSearch";
 
 import BulkImportForm from "./components/import/BulkImportForm";
-import AdvancedSearch from "./components/search/AdvancedSearch";
 import LeadManagement from "./components/crm/LeadManagement";
 import InfractionConfig from "./components/admin/InfractionConfig";
 import WebhookConfig from "./components/integration/WebhookConfig";
@@ -102,8 +101,6 @@ const App = () => (
           
           <Route path="/import" element={<Layout userRole="admin"><BulkImportForm /></Layout>} />
           
-          <Route path="/search" element={<Layout userRole="admin"><AdvancedSearch /></Layout>} />
-
           <Route path="/search/infosimples" element={<Layout userRole="admin"><InfosimplesSearch /></Layout>} />
           
           <Route path="/crm" element={<Layout userRole="admin"><LeadManagement /></Layout>} />

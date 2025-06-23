@@ -8,7 +8,6 @@ import {
   Users,
   Database,
   Calendar,
-  Search,
   BarChart2,
   UserCheck,
   Import,
@@ -71,11 +70,6 @@ export const employeeMenuItems: MenuItem[] = [
     title: "Documentos",
     icon: FileText,
     href: "/documentos",
-  },
-  {
-    title: "Consulta Avançada",
-    icon: Search,
-    href: "/search",
   },
   {
     title: "CRM",

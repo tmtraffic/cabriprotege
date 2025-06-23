@@ -68,26 +68,26 @@ export default function InfosimplesSearch() {
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="plate">Por Placa</TabsTrigger>
-              <TabsTrigger value="renavam">Por RENAVAM</TabsTrigger>
-              <TabsTrigger value="cnh">Por CNH</TabsTrigger>
+              <TabsTrigger value="plate">Veículos</TabsTrigger>
               <TabsTrigger value="infractions">Infrações</TabsTrigger>
+              <TabsTrigger value="cnh">CNH</TabsTrigger>
+              <TabsTrigger value="renavam">RENAVAM</TabsTrigger>
             </TabsList>
             
             <TabsContent value="plate" className="space-y-4">
               <PlateSearchForm />
             </TabsContent>
             
-            <TabsContent value="renavam" className="space-y-4">
-              <RenavamSearchForm />
+            <TabsContent value="infractions" className="space-y-4">
+              <InfractionsSearchForm />
             </TabsContent>
             
             <TabsContent value="cnh" className="space-y-4">
               <CnhSearchForm />
             </TabsContent>
 
-            <TabsContent value="infractions" className="space-y-4">
-              <InfractionsSearchForm />
+            <TabsContent value="renavam" className="space-y-4">
+              <RenavamSearchForm />
             </TabsContent>
           </Tabs>
         </CardContent>

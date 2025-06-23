@@ -7,18 +7,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
-import { Loader2, Search, AlertTriangle, FileText } from "lucide-react";
+import { Loader2, Search, AlertTriangle, Calendar, MapPin, DollarSign } from "lucide-react";
 import { InfosimplesService } from "@/services/api/infosimples-service";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
-interface InfractionResult {
-  auto_number?: string;
-  date?: string;
-  description?: string;
-  value?: number;
-  points?: number;
-  status?: string;
-  location?: string;
-  due_date?: string;
+interface Infraction {
+  auto_infracao?: string;
+  descricao?: string;
+  data_infracao?: string;
+  hora_infracao?: string;
+  local?: string;
+  valor?: string;
+  pontos?: string;
+  situacao?: string;
+  codigo_infracao?: string;
+}
+
+interface InfractionsResult {
+  infractions?: any[];
+  summary?: {
+    total_infractions: number;
+    total_value: number;
+    total_points: number;
+  };
 }
 
 interface InfractionsSearchFormProps {
@@ -28,11 +40,12 @@ interface InfractionsSearchFormProps {
 
 export default function InfractionsSearchForm({ clientId, vehicleId }: InfractionsSearchFormProps) {
   const { user } = useSupabaseAuth();
+  const [searchType, setSearchType] = useState<'placa' | 'renavam' | 'cpf'>('placa');
   const [placa, setPlaca] = useState("");
   const [renavam, setRenavam] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<InfractionResult[] | null>(null);
+  const [result, setResult] = useState<InfractionsResult | null>(null);
 
   const handleConsultar = async () => {
     if (!user) {
@@ -40,29 +53,41 @@ export default function InfractionsSearchForm({ clientId, vehicleId }: Infractio
       return;
     }
 
-    if (!placa && !renavam) {
-      toast.error("Informe pelo menos a placa ou RENAVAM");
+    // Validar entrada
+    if (searchType === 'placa' && !placa) {
+      toast.error("Placa é obrigatória");
       return;
     }
 
-    if (cpf && !InfosimplesService.isValidCPF(cpf)) {
-      toast.error("CPF inválido");
+    if (searchType === 'renavam' && !renavam) {
+      toast.error("RENAVAM é obrigatório");
       return;
+    }
+
+    if (searchType === 'cpf') {
+      if (!cpf) {
+        toast.error("CPF é obrigatório");
+        return;
+      }
+      if (!InfosimplesService.isValidCPF(cpf)) {
+        toast.error("CPF inválido");
+        return;
+      }
     }
 
     setLoading(true);
     setResult(null);
 
     try {
-      const cleanPlaca = placa.replace(/[^A-Z0-9]/g, "");
-      const cleanCpf = cpf.replace(/\D/g, "");
+      const cleanPlaca = searchType === 'placa' ? placa.replace(/[^A-Z0-9]/g, "") : undefined;
+      const cleanCpf = searchType === 'cpf' ? cpf.replace(/\D/g, "") : undefined;
       
-      console.log("Starting infractions search:", { placa: cleanPlaca, renavam, cpf: cleanCpf });
+      console.log("Starting infractions search:", { searchType, placa: cleanPlaca, renavam, cpf: cleanCpf });
 
       const response = await InfosimplesService.consultarInfracoes({
-        placa: cleanPlaca || undefined,
-        renavam: renavam || undefined,
-        cpf: cleanCpf || undefined,
+        placa: cleanPlaca,
+        renavam: searchType === 'renavam' ? renavam : undefined,
+        cpf: cleanCpf,
         user_id: user.id,
         vehicle_id: vehicleId,
         client_id: clientId
@@ -71,8 +96,13 @@ export default function InfractionsSearchForm({ clientId, vehicleId }: Infractio
       console.log("Infractions search completed:", response);
 
       if (response.success && response.data) {
-        setResult(Array.isArray(response.data) ? response.data : [response.data]);
-        toast.success("Consulta de infrações realizada com sucesso");
+        // Normalizar dados se necessário
+        const normalizedData = Array.isArray(response.data) 
+          ? { infractions: response.data, summary: { total_infractions: response.data.length, total_value: 0, total_points: 0 } }
+          : response.data;
+
+        setResult(normalizedData);
+        toast.success(`Consulta realizada com sucesso! ${normalizedData.summary?.total_infractions || normalizedData.infractions?.length || 0} infração(ões) encontrada(s)`);
       } else {
         throw new Error(response.error || "Falha na consulta de infrações");
       }
@@ -85,6 +115,21 @@ export default function InfractionsSearchForm({ clientId, vehicleId }: Infractio
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const getStatusColor = (status: string) => {
+    const statusLower = status?.toLowerCase() || '';
+    if (statusLower.includes('pago') || statusLower.includes('quitado')) return 'bg-green-500';
+    if (statusLower.includes('vencido')) return 'bg-red-500';
+    if (statusLower.includes('pendente')) return 'bg-yellow-500';
+    return 'bg-gray-500';
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -94,55 +139,70 @@ export default function InfractionsSearchForm({ clientId, vehicleId }: Infractio
             Consultar Infrações - Rio de Janeiro
           </CardTitle>
           <CardDescription>
-            Busque infrações de trânsito usando placa, RENAVAM e/ou CPF
+            Busque infrações por placa, RENAVAM ou CPF do condutor
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="placa">Placa (opcional)</Label>
-                <Input
-                  id="placa"
-                  type="text"
-                  placeholder="AAA-0A00"
-                  value={placa}
-                  onChange={(e) => setPlaca(InfosimplesService.formatPlaca(e.target.value))}
-                  maxLength={8}
-                  disabled={loading}
-                />
-              </div>
+            <Tabs value={searchType} onValueChange={(v) => setSearchType(v as any)}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="placa">Por Placa</TabsTrigger>
+                <TabsTrigger value="renavam">Por RENAVAM</TabsTrigger>
+                <TabsTrigger value="cpf">Por CPF</TabsTrigger>
+              </TabsList>
               
-              <div className="space-y-2">
-                <Label htmlFor="renavam">RENAVAM (opcional)</Label>
-                <Input
-                  id="renavam"
-                  type="text"
-                  placeholder="00000000000"
-                  value={renavam}
-                  onChange={(e) => setRenavam(e.target.value.replace(/\D/g, ""))}
-                  maxLength={11}
-                  disabled={loading}
-                />
-              </div>
+              <TabsContent value="placa" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="placa">Placa do Veículo</Label>
+                  <Input
+                    id="placa"
+                    type="text"
+                    placeholder="ABC-1234"
+                    value={placa}
+                    onChange={(e) => setPlaca(InfosimplesService.formatPlaca(e.target.value))}
+                    maxLength={8}
+                    disabled={loading}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="renavam" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="renavam">RENAVAM</Label>
+                  <Input
+                    id="renavam"
+                    type="text"
+                    placeholder="00000000000"
+                    value={renavam}
+                    onChange={(e) => setRenavam(e.target.value.replace(/\D/g, ""))}
+                    maxLength={11}
+                    disabled={loading}
+                  />
+                </div>
+              </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="cpf">CPF (opcional)</Label>
-                <Input
-                  id="cpf"
-                  type="text"
-                  placeholder="000.000.000-00"
-                  value={cpf}
-                  onChange={(e) => setCpf(InfosimplesService.formatCPF(e.target.value))}
-                  maxLength={14}
-                  disabled={loading}
-                />
-              </div>
-            </div>
+              <TabsContent value="cpf" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF do Condutor</Label>
+                  <Input
+                    id="cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    value={cpf}
+                    onChange={(e) => setCpf(InfosimplesService.formatCPF(e.target.value))}
+                    maxLength={14}
+                    disabled={loading}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <Button 
               onClick={handleConsultar} 
-              disabled={loading || (!placa && !renavam)} 
+              disabled={loading || 
+                (searchType === 'placa' && !placa) || 
+                (searchType === 'renavam' && !renavam) || 
+                (searchType === 'cpf' && !cpf)} 
               className="w-full"
             >
               {loading ? (
@@ -170,80 +230,96 @@ export default function InfractionsSearchForm({ clientId, vehicleId }: Infractio
         </Alert>
       )}
 
-      {result && (
-        <div className="space-y-4">
-          {result.length === 0 ? (
-            <Alert>
-              <FileText className="h-4 w-4" />
-              <AlertDescription>
-                Nenhuma infração encontrada para os dados informados.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            result.map((infraction, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <AlertTriangle className="h-4 w-4" />
-                    Infração #{infraction.auto_number || index + 1}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Auto de Infração</p>
-                      <p className="font-medium">{infraction.auto_number || "N/A"}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Data</p>
-                      <p className="font-medium">{infraction.date || "N/A"}</p>
-                    </div>
+      {result?.summary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total de Infrações</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{result.summary.total_infractions}</p>
+            </CardContent>
+          </Card>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">Valor</p>
-                      <p className="font-medium">
-                        {infraction.value 
-                          ? `R$ ${infraction.value.toFixed(2)}` 
-                          : "N/A"
-                        }
-                      </p>
-                    </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{formatCurrency(result.summary.total_value)}</p>
+            </CardContent>
+          </Card>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">Pontos</p>
-                      <p className="font-medium">{infraction.points || "0"}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <p className="font-medium">{infraction.status || "N/A"}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Vencimento</p>
-                      <p className="font-medium">{infraction.due_date || "N/A"}</p>
-                    </div>
-
-                    {infraction.description && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">Descrição</p>
-                        <p className="font-medium">{infraction.description}</p>
-                      </div>
-                    )}
-
-                    {infraction.location && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">Local</p>
-                        <p className="font-medium">{infraction.location}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Pontos Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{result.summary.total_points}</p>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {result?.infractions && result.infractions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Infrações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {result.infractions.map((infraction: any, index: number) => (
+                <Card key={index} className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{infraction.description || infraction.api_data?.descricao}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Auto: {infraction.auto_number || infraction.api_data?.auto_infracao}
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(infraction.status || infraction.api_data?.situacao)}>
+                        {infraction.status || infraction.api_data?.situacao || 'Pendente'}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{infraction.date || infraction.api_data?.data_infracao} às {infraction.time || infraction.api_data?.hora_infracao}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        <span>{formatCurrency(infraction.value || 0)}</span>
+                      </div>
+                    </div>
+
+                    {(infraction.location || infraction.api_data?.local) && (
+                      <div className="flex items-center gap-1 text-sm">
+                        <MapPin className="h-3 w-3" />
+                        <span>{infraction.location || infraction.api_data?.local}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-sm">
+                      <span>Código: {infraction.infraction_code || infraction.api_data?.codigo_infracao}</span>
+                      <span className="font-medium">{infraction.points || infraction.api_data?.pontos || 0} pontos</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {result && (!result.infractions || result.infractions.length === 0) && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">Nenhuma infração encontrada</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

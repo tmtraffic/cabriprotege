@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import PlateSearchForm from "@/components/infosimples/PlateSearchForm";
-import RenavamSearchForm from "@/components/infosimples/RenavamSearchForm";
 import CnhSearchForm from "@/components/infosimples/CnhSearchForm";
 import InfractionsSearchForm from "@/components/infosimples/InfractionsSearchForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,11 +66,10 @@ export default function InfosimplesSearch() {
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="plate">Veículos</TabsTrigger>
               <TabsTrigger value="infractions">Infrações</TabsTrigger>
               <TabsTrigger value="cnh">CNH</TabsTrigger>
-              <TabsTrigger value="renavam">RENAVAM</TabsTrigger>
             </TabsList>
             
             <TabsContent value="plate" className="space-y-4">
@@ -84,10 +82,6 @@ export default function InfosimplesSearch() {
             
             <TabsContent value="cnh" className="space-y-4">
               <CnhSearchForm />
-            </TabsContent>
-
-            <TabsContent value="renavam" className="space-y-4">
-              <RenavamSearchForm />
             </TabsContent>
           </Tabs>
         </CardContent>

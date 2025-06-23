@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import * as InfosimplesService from "@/services/api/infosimples-service";
+import { InfosimplesService } from "@/services/api/infosimples-service";
 import { Search, Car, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -60,21 +60,21 @@ export default function PlateSearchForm() {
       const cleanPlate = plate.replace(/[^A-Z0-9]/g, "");
       console.log('Starting search for:', cleanPlate);
       
-      const response = await InfosimplesService.runPlateSearch(cleanPlate, user.id);
+      const response = await InfosimplesService.consultarVeiculo({
+        placa: cleanPlate,
+        user_id: user.id
+      });
       
       console.log('Search completed:', response);
       
-      if (response.completed && response.data) {
+      if (response.success && response.data) {
         setResult(response.data);
         toast({
           title: "Consulta concluída",
           description: "Dados do veículo carregados com sucesso"
         });
-        
-        // Log site receipts if available
-        if (response.site_receipts?.length > 0) {
-          console.log('Comprovantes disponíveis:', response.site_receipts);
-        }
+      } else {
+        throw new Error(response.error || 'Falha na consulta');
       }
       
     } catch (err: any) {

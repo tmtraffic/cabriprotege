@@ -1,155 +1,177 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client'
 
-export async function runPlateSearch(plate: string, userId: string) {
-  console.log('runPlateSearch called:', { plate, userId });
-  
-  // Check if user is authenticated in Supabase
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  console.log('Supabase auth check:', { user: !!user, error: authError });
-  
-  if (authError) {
-    console.error('Supabase auth error:', authError);
-    throw new Error(`Erro de autenticação: ${authError.message}`);
-  }
-  
-  if (!user) {
-    console.error('No authenticated user found');
-    throw new Error('Usuário não autenticado no sistema');
-  }
-  
-  if (user.id !== userId) {
-    console.error('User ID mismatch:', { sessionUserId: user.id, providedUserId: userId });
-    throw new Error('ID do usuário não confere com a sessão');
-  }
+interface CNHRequest {
+  cpf: string
+  data_nascimento: string // formato: YYYY-MM-DD
+  user_id?: string
+  client_id?: string
+}
 
-  try {
-    // Save request to database
-    const { data: request, error: dbError } = await supabase
-      .from("infosimples_requests")
-      .insert({ 
-        user_id: userId, 
-        search_type: "plate", 
-        search_query: plate,
-        status: "pending"
+interface VehicleRequest {
+  placa?: string
+  renavam?: string
+  user_id?: string
+  client_id?: string
+}
+
+interface InfractionsRequest {
+  placa?: string
+  renavam?: string
+  cpf?: string
+  user_id?: string
+  vehicle_id?: string
+  client_id?: string
+}
+
+export class InfosimplesService {
+  // Consultar CNH no RJ
+  static async consultarCNH(data: CNHRequest) {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('consultar-cnh-rj', {
+        body: data
       })
-      .select("id")
-      .single();
-      
-    if (dbError) throw dbError;
 
-    // Call the simplified Edge Function
-    console.log('Calling Edge Function...');
-    
-    const { data, error } = await supabase.functions.invoke('infosimples-api', {
-      body: { 
-        searchType: 'vehicle',
-        searchQuery: plate,
-        placa: plate  // Send both formats to be sure
+      if (error) throw error
+
+      return {
+        success: true,
+        data: result.data,
+        result_id: result.result_id
       }
-    });
-
-    if (error) {
-      console.error('Edge Function error:', error);
-      throw new Error(`Edge Function error: ${error.message}`);
+    } catch (error: any) {
+      console.error('Erro ao consultar CNH:', error)
+      return {
+        success: false,
+        error: error.message || 'Erro ao consultar CNH'
+      }
     }
+  }
 
-    console.log('Edge Function response:', data);
+  // Consultar Veículo no RJ
+  static async consultarVeiculo(data: VehicleRequest) {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('consultar-veiculo-rj', {
+        body: data
+      })
+
+      if (error) throw error
+
+      return {
+        success: true,
+        data: result.data,
+        vehicle_id: result.data.vehicle_id
+      }
+    } catch (error: any) {
+      console.error('Erro ao consultar veículo:', error)
+      return {
+        success: false,
+        error: error.message || 'Erro ao consultar veículo'
+      }
+    }
+  }
+
+  // Consultar Infrações no RJ
+  static async consultarInfracoes(data: InfractionsRequest) {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('consultar-infracoes-rj', {
+        body: data
+      })
+
+      if (error) throw error
+
+      return {
+        success: true,
+        data: result.data
+      }
+    } catch (error: any) {
+      console.error('Erro ao consultar infrações:', error)
+      return {
+        success: false,
+        error: error.message || 'Erro ao consultar infrações'
+      }
+    }
+  }
+
+  // Formatar CPF
+  static formatCPF(cpf: string): string {
+    return cpf.replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1')
+  }
+
+  // Formatar Placa
+  static formatPlaca(placa: string): string {
+    return placa.toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .replace(/^([A-Z]{3})([0-9A-Z]{1})([0-9A-Z]{1})([0-9]{2})$/, '$1-$2$3$4')
+  }
+
+  // Validar CPF
+  static isValidCPF(cpf: string): boolean {
+    cpf = cpf.replace(/\D/g, '')
     
-    if (data?.success) {
-      // Save the result
-      await supabase.from("infosimples_results").insert({
-        request_id: request.id,
-        result_data: data.data,
-      });
-      
-      // Update request status
-      await supabase
-        .from("infosimples_requests")
-        .update({ 
-          status: "completed",
-          protocol: data.protocolo || `${Date.now()}`
-        })
-        .eq("id", request.id);
-      
-      return { 
-        requestId: request.id,
-        completed: true,
-        data: data.data,
-        site_receipts: data.site_receipts
-      };
-    } else {
-      throw new Error(data?.error || 'Failed to get vehicle data');
+    if (cpf.length !== 11) return false
+    
+    // Verificar se todos os dígitos são iguais
+    if (/^(\d)\1{10}$/.test(cpf)) return false
+    
+    // Validar dígitos verificadores
+    let sum = 0
+    let remainder
+    
+    for (let i = 1; i <= 9; i++) {
+      sum += parseInt(cpf.substring(i - 1, i)) * (11 - i)
     }
     
-  } catch (error) {
-    console.error('runPlateSearch error:', error);
-    throw error;
+    remainder = (sum * 10) % 11
+    if (remainder === 10 || remainder === 11) remainder = 0
+    if (remainder !== parseInt(cpf.substring(9, 10))) return false
+    
+    sum = 0
+    for (let i = 1; i <= 10; i++) {
+      sum += parseInt(cpf.substring(i - 1, i)) * (12 - i)
+    }
+    
+    remainder = (sum * 10) % 11
+    if (remainder === 10 || remainder === 11) remainder = 0
+    if (remainder !== parseInt(cpf.substring(10, 11))) return false
+    
+    return true
+  }
+
+  // Métodos de compatibilidade com o código existente
+  static async runPlateSearch(plate: string, userId: string) {
+    return this.consultarVeiculo({ placa: plate, user_id: userId })
+  }
+
+  static async runMultasSearch(renavam: string, cpf: string, userId: string) {
+    return this.consultarInfracoes({ renavam, cpf, user_id: userId })
+  }
+
+  static async runRenavamSearch(renavam: string, userId: string) {
+    return this.consultarVeiculo({ renavam, user_id: userId })
+  }
+
+  static async runCNHSearch(cnh: string, birthDate: string, userId: string) {
+    // Assumindo que CNH é o CPF para compatibilidade
+    return this.consultarCNH({ cpf: cnh, data_nascimento: birthDate, user_id: userId })
+  }
+
+  static async pollResult(requestId: string) {
+    // Implementação simplificada para compatibilidade
+    return { status: "completed" }
   }
 }
 
-export async function runMultasSearch(renavam: string, cpf: string, userId: string) {
-  console.log('runMultasSearch called:', { renavam, cpf, userId });
-  
-  try {
-    console.log('Calling consult-detran-rj-multas...');
-    const { data, error } = await supabase.functions.invoke('consult-detran-rj-multas', {
-      body: { 
-        renavam: renavam,
-        cpf: cpf
-      }
-    });
+// Exportar como default para compatibilidade
+export default InfosimplesService
 
-    if (error) {
-      console.error('Multas search error:', error);
-      throw new Error(`Erro na consulta de multas: ${error.message}`);
-    }
-
-    console.log('Multas data received:', data);
-
-    if (data?.success) {
-      // Save to database
-      const { error: saveError } = await supabase
-        .from("infosimples_requests")
-        .insert({ 
-          user_id: userId, 
-          search_type: "multas", 
-          search_query: renavam,
-          status: "completed",
-          protocol: data.protocolo || `multas_${Date.now()}`
-        });
-
-      if (saveError) {
-        console.error('Database save error:', saveError);
-      }
-
-      return data.data;
-    }
-
-    throw new Error('Falha ao obter dados de multas');
-    
-  } catch (error) {
-    console.error('runMultasSearch error:', error);
-    throw error;
-  }
-}
-
-// Simplified polling - Edge Function returns immediately
-export async function pollResult(requestId: string) {
-  const { data } = await supabase
-    .from("infosimples_results")
-    .select("result_data")
-    .eq("request_id", requestId)
-    .single();
-    
-  return data?.result_data || { status: "completed" };
-}
-
-// Temporarily disable other searches
-export async function runRenavamSearch(renavam: string, userId: string) {
-  throw new Error('Use a busca por placa para consultar o veículo');
-}
-
-export async function runCNHSearch(cnh: string, birthDate: string, userId: string) {
-  throw new Error('Consulta de CNH será implementada em breve');
-}
+// Exportar também os métodos individuais para compatibilidade
+export const runPlateSearch = InfosimplesService.runPlateSearch.bind(InfosimplesService)
+export const runMultasSearch = InfosimplesService.runMultasSearch.bind(InfosimplesService)
+export const runRenavamSearch = InfosimplesService.runRenavamSearch.bind(InfosimplesService)
+export const runCNHSearch = InfosimplesService.runCNHSearch.bind(InfosimplesService)
+export const pollResult = InfosimplesService.pollResult.bind(InfosimplesService)

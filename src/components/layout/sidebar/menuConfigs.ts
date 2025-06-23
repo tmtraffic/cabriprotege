@@ -12,6 +12,7 @@ import {
   UserCheck,
   Import,
   MessageSquare,
+  FileSearch,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -60,6 +61,11 @@ export const employeeMenuItems: MenuItem[] = [
     title: "Veículos",
     icon: Car,
     href: "/veiculos",
+  },
+  {
+    title: "Consultas Infosimples",
+    icon: FileSearch,
+    href: "/search/infosimples",
   },
   {
     title: "Processos",

@@ -3,24 +3,24 @@ import { useState } from "react";
 import PlateSearchForm from "@/components/infosimples/PlateSearchForm";
 import RenavamSearchForm from "@/components/infosimples/RenavamSearchForm";
 import CnhSearchForm from "@/components/infosimples/CnhSearchForm";
+import InfractionsSearchForm from "@/components/infosimples/InfractionsSearchForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export default function InfosimplesSearch() {
   const [tab, setTab] = useState("plate");
-  const { toast } = useToast();
   
   const testEdgeFunction = async () => {
     console.log('Testing Edge Function...');
     
     try {
       // Test 1: Basic test
-      const { data: test1, error: error1 } = await supabase.functions.invoke('infosimples-api', {
+      const { data: test1, error: error1 } = await supabase.functions.invoke('consultar-veiculo-rj', {
         body: { test: true, timestamp: new Date().toISOString() }
       });
       
@@ -30,33 +30,11 @@ export default function InfosimplesSearch() {
         console.log('Test 1 success:', test1);
       }
       
-      // Test 2: Vehicle search test
-      const { data: test2, error: error2 } = await supabase.functions.invoke('infosimples-api', {
-        body: { 
-          searchType: 'vehicle',
-          searchQuery: 'ABC1234',
-          placa: 'ABC1234'
-        }
-      });
-      
-      if (error2) {
-        console.error('Test 2 failed:', error2);
-      } else {
-        console.log('Test 2 success:', test2);
-      }
-      
-      toast({
-        title: "Testes concluídos",
-        description: "Verifique o console para ver os resultados"
-      });
+      toast.success("Teste concluído! Verifique o console para ver os resultados");
       
     } catch (error) {
       console.error('Test error:', error);
-      toast({ 
-        title: "Erro nos testes", 
-        description: "Verifique o console para mais detalhes",
-        variant: "destructive" 
-      });
+      toast.error("Erro no teste. Verifique o console para mais detalhes");
     }
   };
   
@@ -65,7 +43,7 @@ export default function InfosimplesSearch() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Consultas Infosimples</h1>
         <p className="text-muted-foreground">
-          Realize consultas de veículos e condutores utilizando a API Infosimples.
+          Realize consultas de veículos, condutores e infrações utilizando a API Infosimples.
         </p>
       </div>
 
@@ -89,10 +67,11 @@ export default function InfosimplesSearch() {
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="plate">Consulta por Placa</TabsTrigger>
-              <TabsTrigger value="renavam">Consulta por RENAVAM</TabsTrigger>
-              <TabsTrigger value="cnh">Consulta por CNH</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="plate">Por Placa</TabsTrigger>
+              <TabsTrigger value="renavam">Por RENAVAM</TabsTrigger>
+              <TabsTrigger value="cnh">Por CNH</TabsTrigger>
+              <TabsTrigger value="infractions">Infrações</TabsTrigger>
             </TabsList>
             
             <TabsContent value="plate" className="space-y-4">
@@ -105,6 +84,10 @@ export default function InfosimplesSearch() {
             
             <TabsContent value="cnh" className="space-y-4">
               <CnhSearchForm />
+            </TabsContent>
+
+            <TabsContent value="infractions" className="space-y-4">
+              <InfractionsSearchForm />
             </TabsContent>
           </Tabs>
         </CardContent>
